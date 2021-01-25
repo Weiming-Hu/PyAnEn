@@ -80,7 +80,7 @@ def open_mfdataset(paths, group=None, parallel=True, decode=False):
     # Deal with missing location variables by reading from the root group
     for var in ['Xs', 'Ys']:
         if var not in ds:
-            ds[var] = ds_root[coords_dict[var]]
+            ds[var] = ds_root[var]
 
     ds_root.close()
 

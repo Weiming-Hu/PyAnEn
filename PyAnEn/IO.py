@@ -77,11 +77,6 @@ def open_mfdataset(paths, group=None, parallel=True, decode=False):
         if var in ds.dims and var not in ds.coords:
             ds.coords[var] = ds_root[coords_dict[var]]
 
-    # Deal with missing location variables by reading from the root group
-    for var in ['Xs', 'Ys']:
-        if var not in ds:
-            ds[var] = ds_root[var]
-
     ds_root.close()
 
     # Deal with time units

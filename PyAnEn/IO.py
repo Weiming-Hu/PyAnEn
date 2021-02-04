@@ -1,3 +1,16 @@
+# "`-''-/").___..--''"`-._
+#  (`6_ 6  )   `-.  (     ).`-.__.`)   WE ARE ...
+#  (_Y_.)'  ._   )  `._ `. ``-..-'    PENN STATE!
+#    _ ..`--'_..-_/  /--'_.' ,'
+#  (il),-''  (li),'  ((!.-'
+#
+# Author: Weiming Hu <weiming@psu.edu>
+#
+#         Geoinformatics and Earth Observation Laboratory (http://geolab.psu.edu)
+#         Department of Geography and Institute for Computational and Data Sciences
+#         The Pennsylvania State University
+#
+
 import os
 import re
 import glob

@@ -21,8 +21,8 @@ import xarray as xr
 def __add_coords__(ds, dim_name='num_stations'):
     # Get current chunk number
     matched = re.findall(r'\d+', os.path.basename(ds.encoding['source']))
-    assert len(matched) == 1
-    start = int(matched[0])
+    assert len(matched) > 0, 'No anchor numbers found in file names as indices!'
+    start = int(''.join(matched))
 
     # Get the total number of stations
     assert dim_name in ds.dims, 'The dimension {} does not exist in the following dataset: \n{}'.format(dim_name, ds)

@@ -93,7 +93,7 @@ def open_mfdataset(paths, group=None, parallel=True, decode=False):
     ds_root.close()
 
     # Deal with time units
-    for var in ['test_times', 'search_times', 'Times']:
+    for var in ['test_times', 'search_times', 'Times', 'num_test_times', 'num_times']:
         if var in ds:
             ds[var] = ds[var].assign_attrs(units='seconds since 1970-01-01')
 

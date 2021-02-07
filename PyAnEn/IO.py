@@ -99,6 +99,7 @@ def open_mfdataset(paths, group=None, parallel=True, decode=False):
                                     parallel=parallel, decode_cf=False)
         
         ds = ds.assign(Xs=ds_root['Xs'], Ys=ds_root['Ys'])
+        ds.coords['num_stations'] = ds['Xs']
         
         ds_root.close()
 

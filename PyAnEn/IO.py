@@ -95,7 +95,7 @@ def open_mfdataset(paths, group=None, parallel=True, decode=False):
     nc_root.close()
     
     # Deal with missing location variables by reading from the root group
-    if 'Xs' in ds_root and 'Xs' not in ds:
+    if 'Xs' not in ds:
         
         xs, ys = [], []
 

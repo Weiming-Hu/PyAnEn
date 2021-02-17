@@ -99,7 +99,7 @@ def open_mfdataset(paths, group=None, parallel=True, decode=False):
                                     parallel=parallel, decode_cf=False)
         
         ds = ds.assign(Xs=(ds_root['Xs'].dims, ds_root['Xs'].values),
-                       Ys=(ds_root['Ys'].dims, ds_root['Ys'].values)
+                       Ys=(ds_root['Ys'].dims, ds_root['Ys'].values))
                        
         ds_root.close()
 

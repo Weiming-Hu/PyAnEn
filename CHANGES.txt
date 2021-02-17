@@ -1,3 +1,7 @@
+# PyAnEn 0.1.2
+
+- Deep copy values from root groups when opening files to avoid IO errors
+
 # PyAnEn 0.1.1
 
 - Added verification functions: `crps`, `bias`, and `bias`

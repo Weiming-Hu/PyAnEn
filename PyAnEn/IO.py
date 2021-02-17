@@ -17,6 +17,8 @@ import glob
 
 import xarray as xr
 
+from netCDF4 import Dataset
+
 
 def __add_coords__(ds, dim_name='num_stations'):
     # Get current chunk number
@@ -84,24 +86,28 @@ def open_mfdataset(paths, group=None, parallel=True, decode=False):
             ds.coords[key] = ds[value]
 
     # Deal with missing time variables by reading from the root group
-    ds_root = xr.open_dataset(paths[0], decode_cf=False)
+    nc_root = Dataset(paths[0])
 
     for var in ['num_flts', 'num_test_times']:
         if var in ds.dims and var not in ds.coords:
-            ds.coords[var] = ds_root[coords_dict[var]].values
+            ds.coords[var] = nc_root.variables[coords_dict[var]][:].data
 
-    ds_root.close()
+    nc_root.close()
     
     # Deal with missing location variables by reading from the root group
     if 'Xs' in ds_root and 'Xs' not in ds:
-        ds_root = xr.open_mfdataset(paths=paths, preprocess=__add_coords__, concat_dim='num_stations',
-                                    data_vars='minimal', coords='minimal', compat='override',
-                                    parallel=parallel, decode_cf=False)
         
-        ds = ds.assign(Xs=(ds_root['Xs'].dims, ds_root['Xs'].values),
-                       Ys=(ds_root['Ys'].dims, ds_root['Ys'].values))
-                       
-        ds_root.close()
+        xs, ys = [], []
+
+        for path in paths:
+            nc = Dataset(path)
+
+            xs.append(nc.variables['Xs'][:].data)
+            ys.append(nc.variables['Ys'][:].data)
+
+            nc.close()
+            
+        ds = ds.assign(Xs=('num_stations', xs), Ys=('num_stations', ys))
 
     # Deal with time units
     for var in ['test_times', 'search_times', 'Times', 'num_test_times', 'num_times']:

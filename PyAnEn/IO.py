@@ -15,6 +15,7 @@ import os
 import re
 import glob
 
+import numpy as np
 import xarray as xr
 
 from netCDF4 import Dataset
@@ -107,7 +108,7 @@ def open_mfdataset(paths, group=None, parallel=True, decode=False):
 
             nc.close()
             
-        ds = ds.assign(Xs=('num_stations', xs), Ys=('num_stations', ys))
+        ds = ds.assign(Xs=('num_stations', np.concatenate(xs)), Ys=('num_stations', np.concatenate(ys)))
 
     # Deal with time units
     for var in ['test_times', 'search_times', 'Times', 'num_test_times', 'num_times']:

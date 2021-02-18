@@ -71,10 +71,6 @@ def open_mfdataset(paths, group=None, parallel=True, decode=False):
     # Post-process the dataset #
     ############################
 
-    # This post-processing procedure can be a bit messy because that's just how the real world is.
-    # In a nutshell, I'm making sure coordinate variables and dimensions are properly read.
-    #
-
     # Deal with coordinate variables
     coords_dict = {'num_flts': 'FLTs',
                    'num_parameters': 'ParameterNames',

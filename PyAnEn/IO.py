@@ -93,15 +93,18 @@ def open_mfdataset(paths, group=None, parallel=True, decode=False):
     
     # Deal with missing location variables by reading from the root group
     if 'Xs' not in ds:
-        ds_root = xr.open_mfdataset(paths=paths, preprocess=__add_coords__, concat_dim='num_stations',
-                                    data_vars='minimal', coords='minimal', compat='override',
-                                    parallel=parallel, decode_cf=False)
+        
+        xs, ys = [], []
 
-        ds = ds.assign(Xs=(ds_root['Xs'].dims, ds_root['Xs'].values),
-                       Ys=(ds_root['Ys'].dims, ds_root['Ys'].values))
+        for path in paths:
+            nc = Dataset(path)
 
-        ds_root.close()
-        del ds_root
+            xs.append(nc.variables['Xs'][:].data)
+            ys.append(nc.variables['Ys'][:].data)
+
+            nc.close()
+            
+        ds = ds.assign(Xs=('num_stations', xs), Ys=('num_stations', ys))
 
     # Deal with time units
     for var in ['test_times', 'search_times', 'Times', 'num_test_times', 'num_times']:

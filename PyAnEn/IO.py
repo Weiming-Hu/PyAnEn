@@ -99,8 +99,8 @@ def open_mfdataset(paths, group=None, parallel=True, decode=False):
         for path in paths:
             nc = Dataset(path)
 
-            xs.append(nc.variables['Xs'][:].data)
-            ys.append(nc.variables['Ys'][:].data)
+            xs.extend(nc.variables['Xs'][:].data)
+            ys.extend(nc.variables['Ys'][:].data)
 
             nc.close()
             

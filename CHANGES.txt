@@ -1,6 +1,7 @@
 # PyAnEn 0.1.2
 
 - Deep copy values from root groups when opening files to avoid IO errors
+- Added `IO.open_dataset`
 
 # PyAnEn 0.1.1
 

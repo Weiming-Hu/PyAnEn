@@ -38,6 +38,49 @@ def __add_coords__(ds, dim_name='num_stations'):
     return ds
 
 
+def open_dataset(file, group=None, decode=False):
+
+    ####################
+    # Open the dataset #
+    ####################
+
+    ds = xr.open_dataset(file, group=group, decode_cf=False)
+
+    ############################
+    # Post-process the dataset #
+    ############################
+
+    # Deal with coordinate variables
+    coords_dict = {'num_flts': 'FLTs',
+                   'num_parameters': 'ParameterNames',
+                   'num_test_times': 'test_times',
+                   'num_search_times': 'search_times',
+                   'num_times': 'Times'}
+
+    for key, value in coords_dict.items():
+        if key in ds.dims and value in ds:
+            ds.coords[key] = ds[value]
+
+    # Deal with time units
+    for var in ['test_times', 'search_times', 'Times', 'num_test_times', 'num_times']:
+        if var in ds:
+            ds[var] = ds[var].assign_attrs(units='seconds since 1970-01-01')
+
+    # Deal with test time name
+    #
+    # Analogs have num_test_times and num_search_times to distinguish the two types.
+    # Rename num_test_times to num_times to be consistent with other groups.
+    #
+    if 'num_times' not in ds.dims and 'num_test_times' in ds.dims:
+        ds = ds.rename(num_test_times='num_times')
+
+    # Decode time related variables
+    if decode:
+        ds = xr.decode_cf(ds)
+
+    return ds
+
+
 def open_mfdataset(paths, group=None, parallel=True, decode=False):
     """
     Read multiple NetCDF files as an xarray Dataset.

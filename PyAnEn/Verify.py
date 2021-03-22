@@ -74,7 +74,7 @@ def mae(forecasted, observed, average_axis=None):
     :param forecasted: Forecast array
     :param observed: Observation array
     :param average_axis: The axis to average.  `None` for averaging all axes.
-    :return: RMSE array
+    :return: MAE array
     """
     stats = np.nanmean(np.abs(forecasted - observed), axis=average_axis)
 

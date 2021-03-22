@@ -66,3 +66,16 @@ def rmse(forecasted, observed, average_axis=None):
     stats = np.sqrt(np.nanmean(np.power(forecasted - observed, 2), axis=average_axis))
 
     return stats
+
+
+def mae(forecasted, observed, average_axis=None):
+    """
+    Calculate MAE
+    :param forecasted: Forecast array
+    :param observed: Observation array
+    :param average_axis: The axis to average.  `None` for averaging all axes.
+    :return: RMSE array
+    """
+    stats = np.nanmean(np.abs(forecasted - observed), axis=average_axis)
+
+    return stats

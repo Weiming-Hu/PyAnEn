@@ -1,12 +1,10 @@
+# PyAnEn 0.2.0
+
+- Added new module `Grid`
+
 # PyAnEn 0.1.2
 
 - Deep copy values from root groups when opening files to avoid IO errors
 - Added `IO.open_dataset`
-
-# PyAnEn 0.1.1
-
 - Added verification functions: `crps`, `bias`, and `bias`
-
-# PyAnEn 0.1.0
-
 - Initialized the project

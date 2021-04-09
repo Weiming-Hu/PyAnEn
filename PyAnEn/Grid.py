@@ -1,6 +1,7 @@
 import os
 import warnings
 
+import numpy as np
 import PyAnEn.IO as AnEnIO
 
 

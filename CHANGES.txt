@@ -1,6 +1,7 @@
-# PyAnEn 0.2.0
+# PyAnEn 0.2.1
 
 - Added new module `Grid`
+- Add name decoding to `IO.open_dataset` when `num_chars` is present. This dataset is usually generated from `R`.
 
 # PyAnEn 0.1.2
 

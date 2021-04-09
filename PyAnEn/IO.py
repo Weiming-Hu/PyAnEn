@@ -14,11 +14,21 @@
 import os
 import re
 import glob
+import warnings
 
 import numpy as np
 import xarray as xr
 
 from netCDF4 import Dataset
+
+
+def _decode_name_matrix(mat):
+    names = []
+    
+    for row in mat:
+        names.append(''.join([v.decode("utf-8") for v in row]))
+        
+    return names
 
 
 def __add_coords__(ds, dim_name='num_stations'):
@@ -49,6 +59,19 @@ def open_dataset(file, group=None, decode=False):
     ############################
     # Post-process the dataset #
     ############################
+    
+    # If num_char is present, then I need to decode names from matrices
+    if 'num_chars' in ds.dims:
+        for var in ds.variables:
+            if 'num_chars' in ds[var].dims:
+                
+                if len(ds[var].dims) - 1 != 1:
+                    warnings.warn('Cannot decode {}. Return immediately.'.format(var))
+                    return ds
+                
+                names = _decode_name_matrix(ds[var].data)
+                dim = [dim for dim in ds[var].dims if dim != 'num_chars'][0]
+                ds[var] = ((dim), names)
 
     # Deal with coordinate variables
     coords_dict = {'num_flts': 'FLTs',

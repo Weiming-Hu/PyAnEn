@@ -17,5 +17,8 @@ setuptools.setup(
     ],
     install_requires=[
         'xarray',
+        'properscoring',
+        'netCDF4',
+        'numpy',
     ],
 )

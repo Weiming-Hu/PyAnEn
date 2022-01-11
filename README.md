@@ -8,6 +8,6 @@ This is the Python interface and tools for [Parallel Analog Ensemble](https://we
 ## Install
 
 ```
-pip install git+git://github.com/Weiming-Hu/PyAnEn.git
+pip install git+https://github.com/Weiming-Hu/PyAnEn.git
 ```
 

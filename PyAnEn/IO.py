@@ -22,6 +22,13 @@ import xarray as xr
 from netCDF4 import Dataset
 
 
+coords_dict = {'num_flts': 'FLTs',
+               'num_parameters': 'ParameterNames',
+               'num_test_times': 'test_times',
+               'num_search_times': 'search_times',
+               'num_times': 'Times'}
+
+
 def _decode_name_matrix(mat):
     names = []
     
@@ -44,6 +51,11 @@ def __add_coords__(ds, dim_name='num_stations'):
     # Calculate a helper index
     station_coords = [start + index / current_total for index in range(current_total)]
     ds.coords['num_stations'] = station_coords
+    
+    # Deal with coordinate variables
+    for key, value in coords_dict.items():
+        if key in ds.dims and value in ds:
+            ds.coords[key] = ds[value]
 
     return ds
 
@@ -74,12 +86,6 @@ def open_dataset(file, group=None, decode=False):
                 ds[var] = ((dim), names)
 
     # Deal with coordinate variables
-    coords_dict = {'num_flts': 'FLTs',
-                   'num_parameters': 'ParameterNames',
-                   'num_test_times': 'test_times',
-                   'num_search_times': 'search_times',
-                   'num_times': 'Times'}
-
     for key, value in coords_dict.items():
         if key in ds.dims and value in ds:
             ds.coords[key] = ds[value]
@@ -130,23 +136,12 @@ def open_mfdataset(paths, group=None, parallel=True, decode=False):
     # Open the dataset #
     ####################
     
-    ds = xr.open_mfdataset(paths=paths, preprocess=__add_coords__, concat_dim='num_stations', data_vars='minimal',
-                           coords='minimal', compat='override', parallel=parallel, group=group, decode_cf=decode)
+    ds = xr.open_mfdataset(paths=paths, preprocess=__add_coords__, data_vars='minimal', coords='minimal',
+                           compat='override', parallel=parallel, group=group, decode_cf=decode)
     
     ############################
     # Post-process the dataset #
     ############################
-
-    # Deal with coordinate variables
-    coords_dict = {'num_flts': 'FLTs',
-                   'num_parameters': 'ParameterNames',
-                   'num_test_times': 'test_times',
-                   'num_search_times': 'search_times',
-                   'num_times': 'Times'}
-
-    for key, value in coords_dict.items():
-        if key in ds.dims and value in ds:
-            ds.coords[key] = ds[value]
 
     # Deal with missing time variables by reading from the root group
     nc_root = Dataset(paths[0])

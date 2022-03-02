@@ -52,11 +52,6 @@ def __add_coords__(ds, dim_name='num_stations'):
     station_coords = [start + index / current_total for index in range(current_total)]
     ds.coords['num_stations'] = station_coords
     
-    # Deal with coordinate variables
-    for key, value in coords_dict.items():
-        if key in ds.dims and value in ds:
-            ds.coords[key] = ds[value]
-
     return ds
 
 

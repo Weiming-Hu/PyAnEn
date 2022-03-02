@@ -40,7 +40,7 @@ def _decode_name_matrix(mat):
 
 def __add_coords__(ds, dim_name='num_stations'):
     # Get current chunk number
-    matched = re.findall(r'\d+', os.path.basename(ds.encoding['source']))
+    matched = re.findall(r'Rank(\d+)', os.path.basename(ds.encoding['source']))
     assert len(matched) > 0, 'No anchor numbers found in file names as indices!'
     start = int(''.join(matched))
 

@@ -2,7 +2,7 @@ import os
 import warnings
 
 import numpy as np
-import PyAnEn.IO as AnEnIO
+from .IO import open_dataset
 
 
 def read_station_coordinates(file, group=None, var_x='Xs', var_y='Ys'):
@@ -16,7 +16,7 @@ def read_station_coordinates(file, group=None, var_x='Xs', var_y='Ys'):
     :return (x, y) with each as an Numpy array
     """
     
-    with AnEnIO.open_dataset(file, group=group) as da:
+    with open_dataset(file, group=group) as da:
         x = da[var_x].data
         y = da[var_y].data
     

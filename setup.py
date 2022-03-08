@@ -20,5 +20,7 @@ setuptools.setup(
         'properscoring',
         'netCDF4',
         'numpy',
+        'scipy',
+        'sklearn',
     ],
 )

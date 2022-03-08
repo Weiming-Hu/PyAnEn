@@ -1,18 +1,11 @@
+# PyAnEn 0.3.0
+
+- Added verification classes for deterministic, probabilistic, and ensemble forecasts
+
 # PyAnEn 0.2.1
 
 - Added new module `Grid`
 - Add name decoding to `IO.open_dataset` when `num_chars` is present. This dataset is usually generated from `R`.
-
-
-
-I want a verification class that:
-
-1. input should be observation and forecasts
-1. can calculate various verification metrics
-1. can specify different average dimension
-1. can select whether to boot
-1. can deal with xarray format
-1. save intermediate results to speed up recalculation
 
 # PyAnEn 0.1.2
 

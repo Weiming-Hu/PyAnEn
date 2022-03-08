@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="PyAnEn",
-    version="0.2.1",
+    version="0.3.0",
     author="Weiming Hu",
     author_email="huweiming950714@gmail.com",
     description="The python interface to parallel Analog Ensemble",

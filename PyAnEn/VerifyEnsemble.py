@@ -31,9 +31,6 @@ from .utils_verify import _binned_spread_skill_create_split
 class VerifyEnsemble(Verify):
     def __init__(self, f, o, ensemble_axis=None, ensemble_collapse_func=np.mean,
                  avg_axis=None, boot_samples=None, working_directory=None, start_from_scratch=True):
-        super().__init__(avg_axis=avg_axis, boot_samples=boot_samples,
-                         working_directory=working_directory,
-                         start_from_scratch=start_from_scratch)
         
         self.f = f
         self.o = o
@@ -41,7 +38,10 @@ class VerifyEnsemble(Verify):
         self.ensemble_axis = ensemble_axis
         self.ensemble_collapse_func = ensemble_collapse_func
         
-        self._validate()
+        super().__init__(avg_axis=avg_axis, boot_samples=boot_samples,
+                         working_directory=working_directory,
+                         start_from_scratch=start_from_scratch)
+        
         self._collapse_ensembles()
     
     ###################
@@ -78,8 +78,8 @@ class VerifyEnsemble(Verify):
     def _binned_spread_skill(self, nbins=15):
         
         # Calculate variances and squared errors
-        ab_error = self._metric_workflow_1('ab_error', self._ab_error)
         variance = self._metric_workflow_1('variance', self._variance)
+        ab_error = self._metric_workflow_1('ab_error', self._ab_error)
         
         return _binned_spread_skill_create_split(variance, ab_error, nbins=nbins, sample_axis=self.avg_axis)
     
@@ -143,7 +143,7 @@ class VerifyEnsemble(Verify):
         assert f_shape == o_shape, 'Shape mismatch: f ({}) and o ({})'.format(f_shape, o_shape)
         
         # Check collapse function
-        assert isinstance(self.ensemble_collapse_func, function)
+        assert callable(self.ensemble_collapse_func)
     
     def _collapse_ensembles(self):
         self.f_determ = self.ensemble_collapse_func(self.f, axis=self.ensemble_axis)

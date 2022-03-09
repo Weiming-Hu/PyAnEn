@@ -28,13 +28,12 @@ from .utils_verify import _binned_spread_skill_create_split
 class VerifyProb(Verify):
     def __init__(self, f, o, avg_axis=None, n_sample_members=None, boot_samples=None,
                  working_directory=None, start_from_scratch=True):
-        super().__init__(avg_axis, boot_samples, working_directory, start_from_scratch)
         
         self.f = f
         self.o = o
         self.n_sample_members = n_sample_members
         
-        self._validate()
+        super().__init__(avg_axis, boot_samples, working_directory, start_from_scratch)
         
     ###################
     # Private Methods #
@@ -98,7 +97,7 @@ class VerifyProb(Verify):
         super()._validate()
     
         # Check forecasts and observations
-        assert hasattr(self.f, 'keys')
+        assert hasattr(self.f, 'keys'), 'f should be dict-like'
         assert isinstance(self.o, np.ndarray)
         
         # Check dimensions

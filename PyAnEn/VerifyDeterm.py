@@ -22,14 +22,13 @@ from .Verify import Verify
 class VerifyDeterm(Verify):
     def __init__(self, f, o, avg_axis=None, boot_samples=None,
                  working_directory=None, start_from_scratch=True):
-        super().__init__(avg_axis=avg_axis, boot_samples=boot_samples,
-                         working_directory=working_directory,
-                         start_from_scratch=start_from_scratch)
         
         self.f = f
         self.o = o
         
-        self._validate()
+        super().__init__(avg_axis=avg_axis, boot_samples=boot_samples,
+                         working_directory=working_directory,
+                         start_from_scratch=start_from_scratch)
     
     def _validate(self):
         super()._validate()

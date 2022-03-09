@@ -21,10 +21,11 @@ from .utils_dist import sample_dist_gaussian, cdf_gaussian
 class VerifyProbGaussian(VerifyProb):
     def __init__(self, f, o, move_sampled_ens_axis=-1, truncated=False, avg_axis=None, n_sample_members=None,
                  boot_samples=None, working_directory=None, start_from_scratch=True):
-        super().__init__(f, o, avg_axis, n_sample_members, boot_samples, working_directory, start_from_scratch)
         
         self.truncated = truncated
         self.move_sampled_ens_axis = move_sampled_ens_axis
+        
+        super().__init__(f, o, avg_axis, n_sample_members, boot_samples, working_directory, start_from_scratch)
         
     def _validate(self):
         super()._validate()
@@ -45,5 +46,5 @@ class VerifyProbGaussian(VerifyProb):
         assert self.n_sample_members is not None, 'Set the number of members to sample, e.g., obj.n_sample_members = 15'
         return sample_dist_gaussian(self.f['mu'], self.f['sigma'], self.n_sample_members, self.move_sampled_ens_axis)
     
-    def _cdf(self):
+    def _cdf(self, over=None, below=None):
         return cdf_gaussian(self.f['mu'], self.f['sigma'], over, below, self.truncated)

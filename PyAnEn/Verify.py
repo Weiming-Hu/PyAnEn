@@ -15,12 +15,10 @@ import os
 
 import numpy as np
 
-from .utils_verify import boot_arr, _binned_spread_skill_agg_boot, _binned_spread_skill_agg_no_boot
+from .utils_verify import boot_arr
+from .utils_verify import _binned_spread_skill_agg_boot
+from .utils_verify import _binned_spread_skill_agg_no_boot
 
-
-# For deterministic forecasts: f and o are both numpy arrays; f.shape == o.shape
-# For ensemble forecasts: f and o are both numpy arrays; f.shape - ensemble axis == o.shape
-# For probabilistic forecasts: o is an numpy array; f is a dictionary of numpy arrays with shapes of 0
 
 class Verify:
     def __init__(self, avg_axis=None, boot_samples=None, working_directory=None, start_from_scratch=True):
@@ -111,6 +109,8 @@ class Verify:
         if self.avg_axis is not None:
             if isinstance(self.avg_axis, int):
                 self.avg_axis = (self.avg_axis, )
+            if isinstance(self.avg_axis, list):
+                self.avg_axis = tuple(self.avg_axis)
             assert isinstance(self.avg_axis, tuple)
             
         # Check boot samples
@@ -128,18 +128,18 @@ class Verify:
             if os.path.exists(self.working_directory):
                 if self.start_from_scratch:
                     os.rmdir(self.working_directory)
-                    os.mkdir(os.working_directory)
+                    os.mkdir(self.working_directory)
             else:
-                os.mkdir(os.working_directory)
+                os.mkdir(self.working_directory)
     
     def _save_npy(self, name, arr):
         if self.working_directory:
-            path = os.path.join(self.working_directory, name, '.npy')
+            path = os.path.join(self.working_directory, name + '.npy')
             np.save(path, arr)
         
     def _load_npy(self, name):
         if self.working_directory:
-            path = os.path.join(self.working_directory, name, '.npy')
+            path = os.path.join(self.working_directory, name + '.npy')
             
             if os.path.exists(path):
                 return np.load(path)

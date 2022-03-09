@@ -24,7 +24,7 @@ def sample_dist_gaussian(mu, sigma, n_sample_members=15, move_axis=-1):
     assert mu.shape == sigma.shape
     assert isinstance(move_axis, int)
     
-    arr_shape = mu.shape
+    arr_shape = list(mu.shape)
     
     # Random samples
     ens = stats.norm(loc=mu, scale=sigma).rvs([n_sample_members] + arr_shape)
@@ -43,7 +43,7 @@ def sample_dist_csgd(unshifted_mu, sigma, shift, shift_sign=1, n_sample_members=
     assert shift_sign == 1 or shift_sign == -1
     assert isinstance(move_axis, int)
     
-    arr_shape = unshifted_mu.shape
+    arr_shape = list(unshifted_mu.shape)
     
     # Calculate distribution parameters
     shape = (unshifted_mu / sigma) ** 2
@@ -65,7 +65,7 @@ def cdf_gaussian(mu, sigma, over=None, below=None, truncated=False):
     assert (over is None) ^ (below is None), 'Must specify over or below'
     
     if below is None:
-        probs = stats.gamma.norm(x=over, loc=mu, scale=sigma)
+        probs = stats.norm.cdf(x=over, loc=mu, scale=sigma)
         
         if truncated:
             probs[over < 0] = 0
@@ -73,7 +73,7 @@ def cdf_gaussian(mu, sigma, over=None, below=None, truncated=False):
         probs = 1 - probs
         
     else:
-        probs = stats.gamma.cdf(x=below, loc=mu, scale=sigma)
+        probs = stats.norm.cdf(x=below, loc=mu, scale=sigma)
         
         if truncated:
             probs[below < 0] = 0

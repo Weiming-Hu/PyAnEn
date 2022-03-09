@@ -98,4 +98,59 @@ def test_brier():
     os.remove('./tmp/ens_to_prob_16.5_None.npy')
     os.remove('./tmp/brier_16.5_None.npy')
     os.rmdir('./tmp')
+
+
+def test_avg_axis():
+    
+    def _inner_(f, o, avg_axis, slice_idx, threshold, tag):
+        verify1 = VerifyEnsemble(f[0], o[0], avg_axis=avg_axis)
+        verify2 = VerifyEnsemble(f[1], o[1])
+        verify3 = VerifyEnsemble(f[2], o[2])
+        
+        # CRPS
+
+        r1 = verify1.crps()
+        r2 = verify2.crps()
+        r3 = verify3.crps()
+        
+        assert np.abs(r1[slice_idx] - r2) < 1e-5, 'Failed at CRPS {} with {}'.format(tag, avg_axis)
+        assert np.abs(r2 - r3) < 1e-5, 'Failed at CRPS {} with {}'.format(tag, avg_axis)
+        
+        # Rank histogram
+        r1 = verify1.rank_hist()
+        r2 = verify2.rank_hist()
+        r3 = verify3.rank_hist()
+    
+        if tag[:5] == 'first':
+            assert np.all(r1[slice_idx] == r2.squeeze()), 'Failed at rank histogram {} with {}'.format(tag, avg_axis)
+        elif tag[:6] == 'middle':
+            assert np.all(r1[:, slice_idx] == r2.squeeze()), 'Failed at rank histogram {} with {}'.format(tag, avg_axis)
+        elif tag[:4] == 'last':
+            assert np.all(r1[:, :, :, slice_idx] == r2.squeeze()), 'Failed at rank histogram {} with {}'.format(tag, avg_axis)
+        else:
+            raise RuntimeError
+        
+        assert np.all(r2.squeeze()== r3), 'Failed at rank histogram {} with {}'.format(tag, avg_axis)
+        
+        # Reliability
+        
+        r2 = verify2.reliability(over=threshold)
+        r3 = verify3.reliability(over=threshold)
+        assert np.all(r2[0] == r3[0]), 'Failed at reliability {} with {}'.format(tag, avg_axis)
+        
+        # Spread skill
+        r1 = verify1.binned_spread_skill()
+        r2 = verify2.binned_spread_skill()
+        r3 = verify3.binned_spread_skill()
+        
+        assert np.all(r1[0][:, slice_idx] == r2[0]), 'Failed at spread skill {} with {}'.format(tag, avg_axis)
+        assert np.all(r2[0] == r3[0]), 'Failed at spread skill {} with {}'.format(tag, avg_axis)
+    
+    # Evaluate testing routine
+    init_shape = [8, 9, 10, 11]
+    o = np.random.randint(15, 20, size=init_shape)
+    f = np.random.normal(o, 3, size=[30] + list(o.shape))
+    _inner_([f, f[:, [3]], f[:, 3]], [o, o[[3]], o[3]], (1, 2, 3), 3, 17, 'first dimension')
+    _inner_([f, f[:, :, [3]], f[:, :, 3]], [o, o[:, [3]], o[:, 3]], (0, 2, 3), 3, 17, 'middle dimension')
+    _inner_([f, f[:, :, :, :, [3]], f[:, :, :, :, 3]], [o, o[:, :, :, [3]], o[:, :, :, 3]], (0, 1, 2), 3, 17, 'last dimension')
     

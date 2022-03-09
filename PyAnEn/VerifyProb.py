@@ -34,6 +34,12 @@ class VerifyProb(Verify):
         self.n_sample_members = n_sample_members
         
         super().__init__(avg_axis, boot_samples, working_directory, start_from_scratch)
+    
+    def _crps(self): raise NotImplementedError
+    def _prob_to_determ(self): raise NotImplementedError
+    def _prob_to_variance(self): raise NotImplementedError
+    def _prob_to_ens(self): raise NotImplementedError
+    def _cdf(self, over=None, below=None): raise NotImplementedError
         
     ###################
     # Private Methods #
@@ -45,13 +51,10 @@ class VerifyProb(Verify):
         return self._prob_to_determ() - self.o
     
     def _sq_error(self):
-        return (self._prob_to_determ - self.o) ** 2
+        return (self._prob_to_determ() - self.o) ** 2
     
     def _ab_error(self):
-        return np.abs(self._prob_to_determ - self.o)
-    
-    def _crps(self):
-        raise NotImplementedError
+        return np.abs(self._prob_to_determ() - self.o)
     
     def _rank_hist(self):
         return rank_histogram(f=self._prob_to_ens(), o=self.o, ensemble_axis=-1)

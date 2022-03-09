@@ -19,9 +19,10 @@ import logging
 import warnings
 
 import numpy as np
-
 import scipy.stats as st
+
 from sklearn import metrics
+from scipy import stats, special
 from scipy.stats import rankdata
 from sklearn.neighbors import KernelDensity
 
@@ -123,7 +124,7 @@ def calculate_reliability(f_prob, o_binary, nbins):
     assert nbins <= f_prob.shape[0], 'Too many bins ({}) and too few samples ({})'.format(nbins, f_prob.shape[0])
     
     if nbins * 10 > f_prob.shape[0]:
-        warnings.warn('{} samples and {} bins. Some bins have fewer than 10 samples.'.format(nbins, f_prob.shape[0]))
+        warnings.warn('{} samples and {} bins. Some bins have fewer than 10 samples.'.format(f_prob.shape[0], nbins))
         
     arr_split = np.array_split(np.stack([f_prob, o_binary], axis=1), nbins, 0)
     
@@ -332,6 +333,62 @@ def binned_spread_skill(
         return _binned_spread_skill_agg_boot(
             arr_split=arr_split, reconstruct_shape=shape_to_keep,
             n_samples=boot_samples, repeats=repeats, confidence=confidence)
+        
+        
+######################
+# Functions for CRPS #
+######################
+
+
+def _lbeta(x1, x2):
+    log_prod_gamma_x = np.log(special.gamma(x1)) + np.log(special.gamma(x2))
+    log_gamma_sum_x = np.log(special.gamma(x1 + x2))
+    return log_prod_gamma_x - log_gamma_sum_x
+
+
+def crps_csgd(mu, sigma, shift, obs, reduce_sum=True):
+    
+    shape = np.square(mu / sigma)
+    scale = (np.square(sigma)) / mu
+    
+    # print('shape: {}; scale: {}; shift: {}'.format(shape, scale, shift))
+    
+    # First term in Eq. (5)
+    y_bar = (obs - shift) / scale
+    
+    # F_k_y = tf.math.igamma(shape, 1. * y_bar)
+    F_k_y = stats.gamma.cdf(1. * y_bar, shape)
+    
+    c1 = y_bar * (2. * F_k_y - 1.)
+    
+    # Second term in Eq. (5)
+    # B_05_kp05 = K.exp(tf.math.lbeta(tf.stack([tf.fill(tf.shape(shape), 0.5), shape + 0.5], axis=len(shape.shape))))
+    B_05_kp05 = np.exp(_lbeta(np.full(shape.shape, 0.5), shape + 0.5))
+    
+    c_bar = (-1 * shift) / scale
+    # F_2k_2c = tf.math.igamma(2. * shape, 1. * 2. * c_bar)
+    F_2k_2c = stats.gamma.cdf(1. * 2. * c_bar, 2. * shape)
+    
+    c4 = (shape / np.pi) * B_05_kp05 * (1. - F_2k_2c)
+    
+    # Third term in Eq. (5)
+    # F_k_c = tf.math.igamma(shape, 1. * c_bar)
+    F_k_c = stats.gamma.cdf(1. * c_bar, shape)
+    # F_kp1_y = tf.math.igamma(shape+1., 1. * y_bar)
+    F_kp1_y = stats.gamma.cdf(1. * y_bar, shape+1.)
+    # F_kp1_c = tf.math.igamma(shape+1., 1. * c_bar)
+    F_kp1_c = stats.gamma.cdf(1. * c_bar, shape+1.)
+    
+    c2 = shape * (2. * F_kp1_y - 1. + np.square(F_k_c) - 2. * F_kp1_c * F_k_c)
+    
+    # Fourth term in Eq. (5)
+    c3 = c_bar * np.square(F_k_c)
+    
+    crps = c1 - c2 - c3 - c4        
+    
+    CRPS = crps * scale
+    CRPS += sigma * 0.05
+    return np.mean(CRPS) if reduce_sum else CRPS
         
         
 if __name__ == '__main__':

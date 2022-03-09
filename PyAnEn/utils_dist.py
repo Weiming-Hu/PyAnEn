@@ -36,11 +36,10 @@ def sample_dist_gaussian(mu, sigma, n_sample_members=15, move_axis=-1):
     return ens
 
 
-def sample_dist_csgd(unshifted_mu, sigma, shift, shift_sign=1, n_sample_members=15, move_axis=-1):
+def sample_dist_csgd(unshifted_mu, sigma, shift, n_sample_members=15, move_axis=-1):
     
     assert shift.shape == sigma.shape
     assert shift.shape == unshifted_mu.shape
-    assert shift_sign == 1 or shift_sign == -1
     assert isinstance(move_axis, int)
     
     arr_shape = list(unshifted_mu.shape)
@@ -50,7 +49,7 @@ def sample_dist_csgd(unshifted_mu, sigma, shift, shift_sign=1, n_sample_members=
     scale = sigma ** 2 / unshifted_mu
     
     # Random samples
-    ens = stats.gamma(a=shape, scale=scale, loc=shift * shift_sign).rvs([n_sample_members] + arr_shape)
+    ens = stats.gamma(a=shape, scale=scale, loc=shift).rvs([n_sample_members] + arr_shape)
     
     # Move the ensemble axis somewhere else if the first position is not desired
     if move_axis != 0:
@@ -81,21 +80,21 @@ def cdf_gaussian(mu, sigma, over=None, below=None, truncated=False):
     return probs
 
 
-def cdf_csgd(unshifted_mu, sigma, shift, shift_sign=1, over=None, below=None):
+def cdf_csgd(unshifted_mu, sigma, shift, over=None, below=None):
     
     assert (over is None) ^ (below is None), 'Must specify over or below'
-    assert shift_sign == 1 or shift_sign == -1
     
     # Calculate distribution parameters
     shape = (unshifted_mu / sigma) ** 2
     scale = sigma ** 2 / unshifted_mu
     
+    
     if below is None:
-        probs = stats.gamma.cdf(x=over, a=shape, scale=scale, loc=shift * shift_sign)
+        probs = stats.gamma.cdf(x=over, a=shape, loc=shift, scale=scale)
         probs[over < 0] = 0
         probs = 1 - probs
     else:
-        probs = stats.gamma.cdf(x=below, a=shape, scale=scale, loc=shift * shift_sign)
+        probs = stats.gamma.cdf(x=below, a=shape, loc=shift, scale=scale)
         probs[below < 0] = 0
     
     return probs

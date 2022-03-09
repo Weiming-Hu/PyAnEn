@@ -122,7 +122,7 @@ class VerifyEnsemble(Verify):
                 self.ensemble_axis = guess
                 return
                 
-        raise Exception('Specify ensemble_axis!')
+        raise Exception('Specify ensemble_axis! Got f {} and o {}'.format(self.f.shape, self.o.shape))
     
     def _validate(self):
         super()._validate()

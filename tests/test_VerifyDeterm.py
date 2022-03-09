@@ -93,4 +93,27 @@ def test_ab_error():
     assert verify.ab_error() == np.abs(f - o).mean()
     os.remove('./tmp/ab_error.npy')
     os.rmdir('./tmp')
+
+
+def test_avg_axis():
+    
+    # Define the testing routine
+    def _inner_(f, o, avg_axis, slice_idx, tag):
+        verify1 = VerifyDeterm(f[0], o[0], avg_axis=avg_axis)
+        verify2 = VerifyDeterm(f[1], o[1])
+        verify3 = VerifyDeterm(f[2], o[2])
+
+        r1 = verify1.rmse()
+        r2 = verify2.rmse()
+        r3 = verify3.rmse()
+
+        assert np.abs(r1[slice_idx] - r2) < 1e-5, 'Failed at {} with {}'.format(tag, avg_axis)
+        assert np.abs(r2 - r3) < 1e-5, 'Failed at {} with {}'.format(tag, avg_axis)
+    
+    # Evaluate testing routine
+    o = np.random.randint(10, 100, size=init_shape)
+    f = np.random.normal(o)
+    _inner_([f, f[[3]], f[3]], [o, o[[3]], o[3]], (1, 2, 3), 3, 'first dimension')
+    _inner_([f, f[:, [3]], f[:, 3]], [o, o[:, [3]], o[:, 3]], (0, 2, 3), 3, 'middle dimension')
+    _inner_([f, f[:, :, :, [3]], f[:, :, :, 3]], [o, o[:, :, :, [3]], o[:, :, :, 3]], (0, 1, 2), 3, 'last dimension')
     

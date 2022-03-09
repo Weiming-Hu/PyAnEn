@@ -14,6 +14,8 @@
 # Class definition for probabilistic forecast verification with a Gaussian Distribution
 #
 
+import properscoring as ps
+
 from .VerifyProb import VerifyProb
 from .utils_dist import sample_dist_gaussian, cdf_gaussian
 
@@ -48,3 +50,9 @@ class VerifyProbGaussian(VerifyProb):
     
     def _cdf(self, over=None, below=None):
         return cdf_gaussian(self.f['mu'], self.f['sigma'], over, below, self.truncated)
+    
+    def _crps(self):
+        if self.truncated:
+            raise NotImplementedError
+        else:
+            return ps.crps_gaussian(self.o, mu=self.f['mu'], sig=self.f['sigma'])

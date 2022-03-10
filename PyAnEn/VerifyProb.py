@@ -50,6 +50,7 @@ class VerifyProb(Verify):
     def set_ensemble_members(self, n):
         self.n_sample_members = n
         self._validate_sample_members()
+        return self
     
     ###################
     # Private Methods #

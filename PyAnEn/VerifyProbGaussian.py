@@ -31,6 +31,7 @@ class VerifyProbGaussian(VerifyProb):
     def set_truncation(self, use_truncation):
         self.truncated = use_truncation
         self._validate_truncation()
+        return self
     
     def _validate_truncation(self):
         assert isinstance(self.truncated, bool)

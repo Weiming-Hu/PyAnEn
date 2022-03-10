@@ -106,22 +106,26 @@ class Verify:
     def set_avg_axis(self, x):
         self.avg_axis = x
         self._validate_avg_axis()
+        return self
     
     def set_boot_samples(self, samples):
         self.boot_samples = samples
         self._validate_boot_samples()
+        return self
         
     def enable_saving(self, working_directory, start_from_scratch=True):
         self.working_directory = working_directory
         self.start_from_scratch = start_from_scratch
-        
         self._validate_saving()
+        return self
     
     def disable_boot(self):
         self.boot_samples = None
+        return self
         
     def disable_saving(self):
         self.working_directory = None
+        return self
             
     ###################
     # Private Methods #

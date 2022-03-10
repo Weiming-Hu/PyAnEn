@@ -26,3 +26,9 @@ Defaults = {
 for k, v in Defaults.items():
     if k not in os.environ:
         os.environ[k] = str(v)
+
+
+def print_settings():
+    for k in Defaults:
+        print('os.environ[{}] = {}'.format(k, os.environ[k]))
+        

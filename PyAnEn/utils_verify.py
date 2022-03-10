@@ -183,12 +183,8 @@ def boot_vec(pop, n_samples=None, repeats=None, confidence=None, pbar=None, skip
         
     boot_samples_mean = np.array(boot_samples_mean)
     
-    if skip_nan:
-        sample_mean = np.nanmean(boot_samples_mean)
-        sample_std = np.nanstd(boot_samples_mean)
-    else:
-        sample_mean = boot_samples_mean.mean()
-        sample_std = boot_samples_mean.std()
+    sample_mean = boot_samples_mean.mean()
+    sample_std = boot_samples_mean.std()
 
     ci = st.t.interval(alpha=confidence, df=repeats-1, loc=sample_mean, scale=sample_std)
     

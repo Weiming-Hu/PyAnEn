@@ -20,6 +20,7 @@ import warnings
 import numpy as np
 import scipy.stats as st
 
+from distutils import util
 from tqdm.auto import tqdm
 from sklearn import metrics
 from scipy import stats, special
@@ -64,8 +65,8 @@ def rank_histogram(f, o, ensemble_axis):
     
     # Calculate ranks for ensemble members
     with tqdm(total=np.prod(np.delete(c.shape, 0)),
-              disable=bool(os.environ['pyanen_tqdm_disable']),
-              leave=bool(os.environ['pyanen_tqdm_leave'])) as pbar:
+              disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
+              leave=util.strtobool(os.environ['pyanen_tqdm_leave'])) as pbar:
         ranks = np.apply_along_axis(rankdata_wrapper, 0, c, pbar=pbar)
     
     # Retrieves observation ranks
@@ -115,8 +116,8 @@ def ens_to_prob_kde(ens, over=None, below=None, bandwidth=None, kernel=None,
 def ens_to_prob(f, ensemble_aixs, over=None, below=None):
     assert (over is None) ^ (below is None), 'Must specify over or below'
     with tqdm(total=np.prod(np.delete(f.shape, ensemble_aixs)),
-              disable=bool(os.environ['pyanen_tqdm_disable']),
-              leave=bool(os.environ['pyanen_tqdm_leave'])) as pbar:
+              disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
+              leave=util.strtobool(os.environ['pyanen_tqdm_leave'])) as pbar:
         ret = np.apply_along_axis(ens_to_prob_kde, ensemble_aixs, f, over=over, below=below, pbar=pbar)
     return ret
     
@@ -213,8 +214,8 @@ def boot_arr(metric, sample_axis, n_samples=None, repeats=None, confidence=None)
     assert len(metric.shape) == 2
     
     with tqdm(total=metric.shape[1],
-              disable=bool(os.environ['pyanen_tqdm_disable']),
-              leave=bool(os.environ['pyanen_tqdm_leave'])) as pbar:
+              disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
+              leave=util.strtobool(os.environ['pyanen_tqdm_leave'])) as pbar:
         intervals = np.apply_along_axis(boot_vec, 0, metric, n_samples=n_samples,
                                         repeats=repeats, confidence=confidence, pbar=pbar)
         
@@ -278,8 +279,8 @@ def _binned_spread_skill_agg_no_boot(arr_split, reconstruct_shape):
     errors = []
     
     for arr in tqdm(arr_split,
-                    disable=bool(os.environ['pyanen_tqdm_disable']),
-                    leave=bool(os.environ['pyanen_tqdm_leave'])):
+                    disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
+                    leave=util.strtobool(os.environ['pyanen_tqdm_leave'])):
         assert len(arr.shape) == 3 and arr.shape[1] == 2
         spreads.append([arr[:, 0, i].mean() for i in range(arr.shape[2])])
         errors.append([arr[:, 1, i].mean() for i in range(arr.shape[2])])
@@ -308,8 +309,8 @@ def _binned_spread_skill_agg_boot(arr_split, reconstruct_shape,
     nbins = len(arr_split)
     
     for arr in tqdm(arr_split,
-                    disable=bool(os.environ['pyanen_tqdm_disable']),
-                    leave=bool(os.environ['pyanen_tqdm_leave'])):
+                    disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
+                    leave=util.strtobool(os.environ['pyanen_tqdm_leave'])):
         assert len(arr.shape) == 3 and arr.shape[1] == 2
         pop_size = arr.shape[0]
         
@@ -393,7 +394,7 @@ def crps_csgd(mu, sigma, shift, obs, reduce_sum=True):
     c_bar = (-1 * shift) / scale
     
     # Second term in Eq. (5)
-    if bool(os.environ['pyanen_use_tensorflow_math']):
+    if util.strtobool(os.environ['pyanen_use_tensorflow_math']):
         import tensorflow as tf
         lbeta_ret = tf.math.lbeta(tf.stack([np.full(mu.shape, 0.5), shape + 0.5], axis=len(shape.shape))).numpy()
         F_2k_2c = tf.math.igamma(2. * shape, 1. * 2. * c_bar).numpy()

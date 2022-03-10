@@ -14,8 +14,10 @@
 # Class definition for probabilistic forecast verification
 #
 
+import os
 import numpy as np
 
+from distutils import util
 from .Verify import Verify
 from .utils_verify import binarize_obs
 from .utils_verify import calculate_roc
@@ -72,7 +74,10 @@ class VerifyProb(Verify):
     
     def _spread(self):
         ens = self._prob_to_ens()
-        return np.max(ens, axis=-1) - np.min(ens, axis=-1)
+        if util.strtobool(os.environ['pyanen_skip_nan']):
+            return np.nanmax(ens, axis=-1) - np.nanmin(ens, axis=-1)
+        else:
+            return np.max(ens, axis=-1) - np.min(ens, axis=-1)
     
     def _brier(self, over, below):
         brier = self.cdf(over=over, below=below) - binarize_obs(self.o, over=over, below=below)

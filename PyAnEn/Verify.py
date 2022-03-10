@@ -16,6 +16,7 @@ import shutil
 
 import numpy as np
 
+from distutils import util
 from .utils_verify import boot_arr
 from .utils_verify import _binned_spread_skill_agg_boot
 from .utils_verify import _binned_spread_skill_agg_no_boot
@@ -82,7 +83,10 @@ class Verify:
         
         if self.boot_samples is None:
             # Only average over axis
-            return metric.mean(axis=self.avg_axis)
+            if util.strtobool(os.environ['pyanen_skip_nan']):
+                return np.nanmean(metric, axis=self.avg_axis)
+            else:
+                return metric.mean(axis=self.avg_axis)
         
         else:
             # Use bootstraping to sample from averaging axis and create CI

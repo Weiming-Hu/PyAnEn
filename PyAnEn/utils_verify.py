@@ -28,24 +28,6 @@ from scipy.stats import rankdata
 from sklearn.neighbors import KernelDensity
 
 
-DEFAULTS = {
-    'pyanen_kde_bandwidth': 0.01,
-    'pyanen_kde_kernel': 'gaussian',
-    'pyanen_kde_samples': 1000,
-    'pyanen_kde_multiply_spread': 5,
-    'pyanen_boot_confidence': 0.95,
-    'pyanen_boot_repeats': 1000,
-    'pyanen_boot_samples': 300,
-    'pyanen_tqdm_disable': True,
-    'pyanen_tqdm_leave': False,
-    'pyanen_use_tensorflow_math': False,
-}
-
-for k, v in DEFAULTS.items():
-    if k not in os.environ:
-        os.environ[k] = str(v)
-
-
 def rankdata_wrapper(x, pbar=None):
     if pbar is not None:
         pbar.update(1)
@@ -55,6 +37,12 @@ def rankdata_wrapper(x, pbar=None):
 def rank_histogram(f, o, ensemble_axis):
     # Reference:
     # https://github.com/oliverangelil/rankhistogram/blob/master/ranky.py
+    
+    if util.strtobool(os.environ['pyanen_skip_nan']):
+        o_mask = np.where(np.isnan(o))
+    else:
+        assert not np.any(np.isnan(f)), "[rank_histogram] f has NANs. Try to set os.environ['pyanen_skip_nan']='True'"
+        assert not np.any(np.isnan(o)), "[rank_histogram] o has NANs. Try to set os.environ['pyanen_skip_nan']='True'"
     
     # Move the ensemble axis to the first axis and
     # combine observations and ensembles along the first axis
@@ -82,6 +70,9 @@ def rank_histogram(f, o, ensemble_axis):
         obs_ranks[ties == tie[i]] = [np.random.randint(index[j], index[j] + tie[i] + 1, tie[i])[0] 
                                      for j in range(len(index))]
     
+    if util.strtobool(os.environ['pyanen_skip_nan']):
+        obs_ranks[o_mask] = np.nan
+        
     return obs_ranks
 
 
@@ -98,7 +89,7 @@ def ens_to_prob_kde(ens, over=None, below=None, bandwidth=None, kernel=None,
     kde = KernelDensity(bandwidth=bandwidth, kernel=kernel)
     kde.fit(ens)
     
-    vmin, vmax = ens.mean(), ens.max()
+    vmin, vmax = ens.min(), ens.max()
     spread = vmax - vmin
     
     x = np.linspace(vmin - spread * spread_multiplier, below, samples) \
@@ -148,7 +139,11 @@ def calculate_reliability(f_prob, o_binary, nbins):
     arr_split = np.array_split(np.stack([f_prob, o_binary], axis=1), nbins, 0)
     
     # Calculate average forecasted probability and the average observed frequency
-    rel = np.array([np.mean(i, axis=0) for i in arr_split])
+    if util.strtobool(os.environ['pyanen_skip_nan']):
+        rel = np.array([np.nanmean(i, axis=0) for i in arr_split])
+    else:
+        rel = np.array([np.mean(i, axis=0) for i in arr_split])
+        
     forecasted, observed = rel[:, 0], rel[:, 1]
     
     return forecasted, observed
@@ -158,6 +153,11 @@ def calculate_roc(f_prob, o_binary):
     # Flatten
     f_prob = f_prob.flatten()
     o_binary = o_binary.flatten()
+    
+    if util.strtobool(os.environ['pyanen_skip_nan']):
+        mask = np.isnan(f_prob) or np.isnan(o_binary)
+        f_prob = f_prob[~mask]
+        o_binary = o_binary[~mask]
     
     # Calculate ROC curve
     fpr, tpr, _ = metrics.roc_curve(y_true=o_binary, y_score=f_prob)
@@ -170,17 +170,25 @@ def calculate_roc(f_prob, o_binary):
 # Functions for Bootstraping #
 ##############################
 
-def boot_vec(pop, n_samples=None, repeats=None, confidence=None, pbar=None):
+def boot_vec(pop, n_samples=None, repeats=None, confidence=None, pbar=None, skip_nan=False):
     
     if n_samples is None: n_samples = int(os.environ['pyanen_boot_samples'])
     if repeats is None: repeats = int(os.environ['pyanen_boot_repeats'])
     if confidence is None: confidence = float(os.environ['pyanen_boot_confidence'])
     
-    boot_samples_mean = [np.random.choice(pop, size=n_samples, replace=True).mean() for _ in range(repeats)]
+    if skip_nan:
+        boot_samples_mean = [np.nanmean(np.random.choice(pop, size=n_samples, replace=True)) for _ in range(repeats)]
+    else:
+        boot_samples_mean = [np.random.choice(pop, size=n_samples, replace=True).mean() for _ in range(repeats)]
+        
     boot_samples_mean = np.array(boot_samples_mean)
-
-    sample_mean = boot_samples_mean.mean()
-    sample_std = boot_samples_mean.std()
+    
+    if skip_nan:
+        sample_mean = np.nanmean(boot_samples_mean)
+        sample_std = np.nanstd(boot_samples_mean)
+    else:
+        sample_mean = boot_samples_mean.mean()
+        sample_std = boot_samples_mean.std()
 
     ci = st.t.interval(alpha=confidence, df=repeats-1, loc=sample_mean, scale=sample_std)
     
@@ -217,7 +225,8 @@ def boot_arr(metric, sample_axis, n_samples=None, repeats=None, confidence=None)
               disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
               leave=util.strtobool(os.environ['pyanen_tqdm_leave'])) as pbar:
         intervals = np.apply_along_axis(boot_vec, 0, metric, n_samples=n_samples,
-                                        repeats=repeats, confidence=confidence, pbar=pbar)
+                                        repeats=repeats, confidence=confidence, pbar=pbar,
+                                        skip_nan=util.strtobool(os.environ['pyanen_skip_nan']))
         
     intervals = intervals.reshape(-1, *shape_to_keep)
     
@@ -273,7 +282,9 @@ def _binned_spread_skill_create_split(variance, ab_error, nbins, sample_axis):
     return arr_split, shape_to_keep
 
 
-def _binned_spread_skill_agg_no_boot(arr_split, reconstruct_shape):
+def _binned_spread_skill_agg_no_boot(arr_split, reconstruct_shape, skip_nan=None):
+    
+    if skip_nan is None: skip_nan = util.strtobool(os.environ['pyanen_skip_nan'])
     
     spreads = []
     errors = []
@@ -282,8 +293,13 @@ def _binned_spread_skill_agg_no_boot(arr_split, reconstruct_shape):
                     disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
                     leave=util.strtobool(os.environ['pyanen_tqdm_leave'])):
         assert len(arr.shape) == 3 and arr.shape[1] == 2
-        spreads.append([arr[:, 0, i].mean() for i in range(arr.shape[2])])
-        errors.append([arr[:, 1, i].mean() for i in range(arr.shape[2])])
+        
+        if skip_nan:
+            spreads.append([np.nanmean(arr[:, 0, i]) for i in range(arr.shape[2])])
+            errors.append([np.nanmean(arr[:, 1, i]) for i in range(arr.shape[2])])
+        else:
+            spreads.append([arr[:, 0, i].mean() for i in range(arr.shape[2])])
+            errors.append([arr[:, 1, i].mean() for i in range(arr.shape[2])])
     
     spreads = np.array(spreads)
     errors = np.array(errors)
@@ -297,11 +313,12 @@ def _binned_spread_skill_agg_no_boot(arr_split, reconstruct_shape):
 
 
 def _binned_spread_skill_agg_boot(arr_split, reconstruct_shape,
-                                  n_samples=None, repeats=None, confidence=None):
+                                  n_samples=None, repeats=None, confidence=None, skip_nan=None):
     
     if n_samples is None: n_samples = int(os.environ['pyanen_boot_samples'])
     if repeats is None: repeats = int(os.environ['pyanen_boot_repeats'])
     if confidence is None: confidence = float(os.environ['pyanen_boot_confidence'])
+    if skip_nan is None: skip_nan = util.strtobool(os.environ['pyanen_skip_nan'])
     
     spreads_ci = []
     errors_ci = []
@@ -320,8 +337,13 @@ def _binned_spread_skill_agg_boot(arr_split, reconstruct_shape,
             
             for _ in range(repeats):
                 idx = np.random.randint(pop_size, size=n_samples)
-                spreads.append(arr[idx, 0, dim_i].mean())
-                errors.append(arr[idx, 1, dim_i].mean())
+                
+                if skip_nan:
+                    spreads.append(np.nanmean(arr[idx, 0, dim_i]))
+                    errors.append(np.nanmean(arr[idx, 1, dim_i]))
+                else:
+                    spreads.append(arr[idx, 0, dim_i].mean())
+                    errors.append(arr[idx, 1, dim_i].mean())
             
             spread_mean, spread_std = np.mean(spreads), np.std(spreads)
             error_mean, error_std = np.mean(errors), np.std(errors)
@@ -350,7 +372,7 @@ def _binned_spread_skill_agg_boot(arr_split, reconstruct_shape,
 
 def binned_spread_skill(
     variance, ab_error, nbins, sample_axis,
-    boot_samples=None, repeats=None, confidence=None):
+    boot_samples=None, repeats=None, confidence=None, skip_nan=None):
     
     if repeats is None: repeats = int(os.environ['pyanen_boot_repeats'])
     if confidence is None: confidence = float(os.environ['pyanen_boot_confidence'])
@@ -361,11 +383,13 @@ def binned_spread_skill(
     
     if boot_samples is None:
         return _binned_spread_skill_agg_no_boot(
-            arr_split=arr_split, reconstruct_shape=shape_to_keep)
+            arr_split=arr_split, reconstruct_shape=shape_to_keep,
+            skip_nan=skip_nan)
     else:
         return _binned_spread_skill_agg_boot(
             arr_split=arr_split, reconstruct_shape=shape_to_keep,
-            n_samples=boot_samples, repeats=repeats, confidence=confidence)
+            n_samples=boot_samples, repeats=repeats, confidence=confidence,
+            skip_nan=skip_nan)
         
         
 ######################
@@ -418,4 +442,11 @@ def crps_csgd(mu, sigma, shift, obs, reduce_sum=True):
     crps = c1 - c2 - c3 - c4
     
     CRPS = crps * scale
-    return np.mean(CRPS) if reduce_sum else CRPS
+    
+    if reduce_sum:
+        if util.strtobool(os.environ['pyanen_skip_nan']):
+            return np.nanmean(CRPS)
+        else:
+            return np.mean(CRPS)
+    else:
+        return CRPS

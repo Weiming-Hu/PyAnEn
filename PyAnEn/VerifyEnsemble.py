@@ -14,11 +14,13 @@
 # Class definition for ensemble forecast verification
 #
 
+import os
 import numpy as np
 import properscoring as ps
 
 from functools import partial
 
+from distutils import util
 from .Verify import Verify
 from .utils_verify import ens_to_prob
 from .utils_verify import binarize_obs
@@ -67,7 +69,10 @@ class VerifyEnsemble(Verify):
         return rank_histogram(f=self.f, o=self.o, ensemble_axis=self.ensemble_axis)
     
     def _spread(self):
-        return np.max(self.f, axis=self.ensemble_axis) - np.min(self.f, axis=self.ensemble_axis)
+        if util.strtobool(os.environ['pyanen_skip_nan']):
+            return np.nanmax(self.f, axis=self.ensemble_axis) - np.nanmin(self.f, axis=self.ensemble_axis)
+        else:
+            return np.max(self.f, axis=self.ensemble_axis) - np.min(self.f, axis=self.ensemble_axis)
     
     def _brier(self, over=None, below=None):
         brier = self._ens_to_prob(over=over, below=below) - binarize_obs(self.o, over=over, below=below)

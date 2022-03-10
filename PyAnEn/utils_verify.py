@@ -15,18 +15,16 @@
 #
 
 import os
-import logging
 import warnings
 
 import numpy as np
 import scipy.stats as st
 
+from tqdm.auto import tqdm
 from sklearn import metrics
 from scipy import stats, special
 from scipy.stats import rankdata
 from sklearn.neighbors import KernelDensity
-
-logger = logging.getLogger('utils_verify')
 
 
 DEFAULTS = {
@@ -37,11 +35,19 @@ DEFAULTS = {
     'pyanen_boot_confidence': 0.95,
     'pyanen_boot_repeats': 1000,
     'pyanen_boot_samples': 300,
+    'pyanen_tqdm_disable': True,
+    'pyanen_tqdm_leave': False,
 }
 
 for k, v in DEFAULTS.items():
     if k not in os.environ:
         os.environ[k] = str(v)
+
+
+def rankdata_wrapper(x, pbar=None):
+    if pbar is not None:
+        pbar.update(1)
+    return rankdata(x, method='min')
 
 
 def rank_histogram(f, o, ensemble_axis):
@@ -56,7 +62,10 @@ def rank_histogram(f, o, ensemble_axis):
         np.moveaxis(f, ensemble_axis, 0)))
     
     # Calculate ranks for ensemble members
-    ranks = np.apply_along_axis(lambda x: rankdata(x, method='min'), 0, c)
+    with tqdm(total=np.prod(np.delete(c.shape, 0)),
+              disable=bool(os.environ['pyanen_tqdm_disable']),
+              leave=bool(os.environ['pyanen_tqdm_leave'])) as pbar:
+        ranks = np.apply_along_axis(rankdata_wrapper, 0, c, pbar=pbar)
     
     # Retrieves observation ranks
     obs_ranks = ranks[0]
@@ -74,12 +83,13 @@ def rank_histogram(f, o, ensemble_axis):
     return obs_ranks
 
 
-def ens_to_prob_kde(ens, over=None, below=None,
-                    bandwidth=float(os.environ['pyanen_kde_bandwidth']),
-                    kernel=os.environ['pyanen_kde_kernel'],
-                    samples=int(os.environ['pyanen_kde_samples']),
-                    spread_multiplier=int(os.environ['pyanen_kde_multiply_spread'])):
-    logger.info('ens_to_prob_kde with bandwidth ({}), kernel ({}), and samples ({})'.format(bandwidth, kernel, samples))
+def ens_to_prob_kde(ens, over=None, below=None, bandwidth=None, kernel=None,
+                    samples=None, spread_multiplier=None, pbar=None):
+    
+    if bandwidth is None: bandwidth = float(os.environ['pyanen_kde_bandwidth'])
+    if kernel is None: kernel = os.environ['pyanen_kde_kernel']
+    if samples is None: samples = int(os.environ['pyanen_kde_samples'])
+    if spread_multiplier is None: spread_multiplier = int(os.environ['pyanen_kde_multiply_spread'])
     
     ens = ens.reshape(-1, 1)
     
@@ -94,13 +104,20 @@ def ens_to_prob_kde(ens, over=None, below=None,
         
     interval = x[1] - x[0]
     x = x.reshape(-1, 1)
+    
+    if pbar is not None:
+        pbar.update(1)
         
     return np.sum(np.exp(kde.score_samples(x))) * interval
 
 
 def ens_to_prob(f, ensemble_aixs, over=None, below=None):
     assert (over is None) ^ (below is None), 'Must specify over or below'
-    return np.apply_along_axis(ens_to_prob_kde, ensemble_aixs, f, over=over, below=below)
+    with tqdm(total=np.prod(np.delete(f.shape, ensemble_aixs)),
+              disable=bool(os.environ['pyanen_tqdm_disable']),
+              leave=bool(os.environ['pyanen_tqdm_leave'])) as pbar:
+        ret = np.apply_along_axis(ens_to_prob_kde, ensemble_aixs, f, over=over, below=below, pbar=pbar)
+    return ret
     
 
 def binarize_obs(o, over=None, below=None):
@@ -151,11 +168,11 @@ def calculate_roc(f_prob, o_binary):
 # Functions for Bootstraping #
 ##############################
 
-def boot_vec(pop,
-             n_samples=int(os.environ['pyanen_boot_samples']),
-             repeats=int(os.environ['pyanen_boot_repeats']),
-             confidence=float(os.environ['pyanen_boot_confidence'])):
-    logger.info('boot_vec with n_samples ({}), repeats ({}), and confidence ({})'.format(n_samples, repeats, confidence))
+def boot_vec(pop, n_samples=None, repeats=None, confidence=None, pbar=None):
+    
+    if n_samples is None: n_samples = int(os.environ['pyanen_boot_samples'])
+    if repeats is None: repeats = int(os.environ['pyanen_boot_repeats'])
+    if confidence is None: confidence = float(os.environ['pyanen_boot_confidence'])
     
     boot_samples_mean = [np.random.choice(pop, size=n_samples, replace=True).mean() for _ in range(repeats)]
     boot_samples_mean = np.array(boot_samples_mean)
@@ -164,14 +181,18 @@ def boot_vec(pop,
     sample_std = boot_samples_mean.std()
 
     ci = st.t.interval(alpha=confidence, df=repeats-1, loc=sample_mean, scale=sample_std)
+    
+    if pbar is not None:
+        pbar.update(1)
+        
     return np.array([ci[0], sample_mean, ci[1]])
 
 
-def boot_arr(metric, sample_axis,
-             n_samples=int(os.environ['pyanen_boot_samples']),
-             repeats=int(os.environ['pyanen_boot_repeats']),
-             confidence=float(os.environ['pyanen_boot_confidence'])):
-    logger.info('boot_arr with n_samples ({}), repeats ({}), and confidence ({})'.format(n_samples, repeats, confidence))
+def boot_arr(metric, sample_axis, n_samples=None, repeats=None, confidence=None):
+    
+    if n_samples is None: n_samples = int(os.environ['pyanen_boot_samples'])
+    if repeats is None: repeats = int(os.environ['pyanen_boot_repeats'])
+    if confidence is None: confidence = float(os.environ['pyanen_boot_confidence'])
     
     if sample_axis is None:
         sample_axis = list(range(len(metric.shape)))
@@ -187,10 +208,15 @@ def boot_arr(metric, sample_axis,
     shape_to_keep = metric.shape[to_axis:]
 
     # Flatten the sample dimensions and the kept dimensions separately
-    metric = metric.reshape(-1, *shape_to_keep)
     metric = metric.reshape(-1, np.prod(shape_to_keep).astype(int))
+    assert len(metric.shape) == 2
     
-    intervals = np.apply_along_axis(boot_vec, 0, metric, n_samples=n_samples, repeats=repeats, confidence=confidence)
+    with tqdm(total=metric.shape[1],
+              disable=bool(os.environ['pyanen_tqdm_disable']),
+              leave=bool(os.environ['pyanen_tqdm_leave'])) as pbar:
+        intervals = np.apply_along_axis(boot_vec, 0, metric, n_samples=n_samples,
+                                        repeats=repeats, confidence=confidence, pbar=pbar)
+        
     intervals = intervals.reshape(-1, *shape_to_keep)
     
     return intervals
@@ -250,7 +276,9 @@ def _binned_spread_skill_agg_no_boot(arr_split, reconstruct_shape):
     spreads = []
     errors = []
     
-    for arr in arr_split:
+    for arr in tqdm(arr_split,
+                    disable=bool(os.environ['pyanen_tqdm_disable']),
+                    leave=bool(os.environ['pyanen_tqdm_leave'])):
         assert len(arr.shape) == 3 and arr.shape[1] == 2
         spreads.append([arr[:, 0, i].mean() for i in range(arr.shape[2])])
         errors.append([arr[:, 1, i].mean() for i in range(arr.shape[2])])
@@ -267,17 +295,20 @@ def _binned_spread_skill_agg_no_boot(arr_split, reconstruct_shape):
 
 
 def _binned_spread_skill_agg_boot(arr_split, reconstruct_shape,
-                                  n_samples=int(os.environ['pyanen_boot_samples']),
-                                  repeats=int(os.environ['pyanen_boot_repeats']),
-                                  confidence=float(os.environ['pyanen_boot_confidence'])):
-    logger.info('_binned_spread_skill_agg_boot with n_samples ({}), repeats ({}), and confidence ({})'.format(n_samples, repeats, confidence))
+                                  n_samples=None, repeats=None, confidence=None):
+    
+    if n_samples is None: n_samples = int(os.environ['pyanen_boot_samples'])
+    if repeats is None: repeats = int(os.environ['pyanen_boot_repeats'])
+    if confidence is None: confidence = float(os.environ['pyanen_boot_confidence'])
     
     spreads_ci = []
     errors_ci = []
     
     nbins = len(arr_split)
     
-    for arr in arr_split:
+    for arr in tqdm(arr_split,
+                    disable=bool(os.environ['pyanen_tqdm_disable']),
+                    leave=bool(os.environ['pyanen_tqdm_leave'])):
         assert len(arr.shape) == 3 and arr.shape[1] == 2
         pop_size = arr.shape[0]
         
@@ -317,10 +348,10 @@ def _binned_spread_skill_agg_boot(arr_split, reconstruct_shape,
 
 def binned_spread_skill(
     variance, ab_error, nbins, sample_axis,
-    boot_samples=None,
-    repeats=int(os.environ['pyanen_boot_repeats']),
-    confidence=float(os.environ['pyanen_boot_confidence'])):
-    logger.info('bin_spread_skill with n_samples ({}), repeats ({}), and confidence ({})'.format(boot_samples, repeats, confidence))
+    boot_samples=None, repeats=None, confidence=None):
+    
+    if repeats is None: repeats = int(os.environ['pyanen_boot_repeats'])
+    if confidence is None: confidence = float(os.environ['pyanen_boot_confidence'])
     
     arr_split, shape_to_keep = _binned_spread_skill_create_split(
         variance=variance, ab_error=ab_error,
@@ -389,10 +420,3 @@ def crps_csgd(mu, sigma, shift, obs, reduce_sum=True):
     CRPS = crps * scale
     CRPS += sigma * 0.05
     return np.mean(CRPS) if reduce_sum else CRPS
-        
-        
-if __name__ == '__main__':
-    f = np.arange(0, 40).reshape(2, 4, 5)
-    o = np.array([0.1, 7.7, 9, 20, 22, 27, 32, 37]).reshape(2, 4)
-    r = rank_histogram(f, o, 2)
-    

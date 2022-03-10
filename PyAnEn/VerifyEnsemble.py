@@ -18,10 +18,10 @@ import os
 import numpy as np
 import properscoring as ps
 
-from functools import partial
 
 from distutils import util
 from .Verify import Verify
+from functools import partial
 from .utils_verify import ens_to_prob
 from .utils_verify import binarize_obs
 from .utils_verify import calculate_roc

@@ -90,7 +90,7 @@ class Verify:
         
         else:
             # Use bootstraping to sample from averaging axis and create CI
-            return boot_arr(metric, sample_axis=self.avg_axis)
+            return boot_arr(metric, sample_axis=self.avg_axis, n_samples=self.boot_samples)
         
     def post_binned_spread_skill(self, metric):
         # Deals with averaging or bootstraping for spread skill arrays
@@ -101,7 +101,7 @@ class Verify:
         
         else:
             # Use bootstraping to create CI
-            return _binned_spread_skill_agg_boot(*metric)
+            return _binned_spread_skill_agg_boot(*metric, n_samples=self.boot_samples)
     
     ########################
     # Other Public Methods #

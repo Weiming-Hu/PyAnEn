@@ -171,6 +171,7 @@ def calculate_roc(f_prob, o_binary):
 ##############################
 
 def boot_vec(pop, n_samples=None, repeats=None, confidence=None, pbar=None, skip_nan=False):
+    # Reference: https://www.cawcr.gov.au/projects/verification/BootstrapCIs.html
     
     if n_samples is None: n_samples = int(os.environ['pyanen_boot_samples'])
     if repeats is None: repeats = int(os.environ['pyanen_boot_repeats'])

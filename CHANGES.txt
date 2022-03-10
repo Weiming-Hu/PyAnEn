@@ -1,4 +1,4 @@
-# PyAnEn 0.3.3
+# PyAnEn 0.3.4
 
 - Added verification classes for deterministic, probabilistic, and ensemble forecasts
 - Added progress bar from tqdm
@@ -6,6 +6,7 @@
 - Recursively create and remove folders
 - CRPS calculation confines numpy arrays to be float to improve stability
 - Added str methods
+- Added various setters and getters
 
 # PyAnEn 0.2.1
 

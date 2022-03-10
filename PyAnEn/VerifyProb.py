@@ -14,7 +14,6 @@
 # Class definition for probabilistic forecast verification
 #
 
-from random import sample
 import numpy as np
 
 from .Verify import Verify
@@ -43,7 +42,15 @@ class VerifyProb(Verify):
     def _prob_to_variance(self): raise NotImplementedError
     def _prob_to_ens(self): raise NotImplementedError
     def _cdf(self, over=None, below=None): raise NotImplementedError
-        
+    
+    ##################
+    # Public Methods #
+    ##################
+    
+    def set_ensemble_members(self, n):
+        self.n_sample_members = n
+        self._validate_sample_members()
+    
     ###################
     # Private Methods #
     ###################
@@ -99,6 +106,10 @@ class VerifyProb(Verify):
     
     ###### Other Methods ######
     
+    def _validate_sample_members(self):
+        if self.n_sample_members is not None:
+            assert isinstance(self.n_sample_members, int)
+    
     def _validate(self):
         super()._validate()
         
@@ -116,8 +127,7 @@ class VerifyProb(Verify):
             assert f_shape == o_shape, 'Shape mismatch: f[{}] ({}) and o ({})'.format(k, f_shape, o_shape)
         
         # Check number of ensemble members to sample
-        if self.n_sample_members is not None:
-            assert isinstance(self.n_sample_members, int)
+        self._validate_sample_members()
     
     def __str__(self):
         msg = super().__str__()

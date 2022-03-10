@@ -106,8 +106,23 @@ class Verify:
     def set_avg_axis(self, x):
         self.avg_axis = x
         self._validate_avg_axis()
-            
     
+    def set_boot_samples(self, samples):
+        self.boot_samples = samples
+        self._validate_boot_samples()
+        
+    def enable_saving(self, working_directory, start_from_scratch=True):
+        self.working_directory = working_directory
+        self.start_from_scratch = start_from_scratch
+        
+        self._validate_saving()
+    
+    def disable_boot(self):
+        self.boot_samples = None
+        
+    def disable_saving(self):
+        self.working_directory = None
+            
     ###################
     # Private Methods #
     ###################
@@ -120,20 +135,9 @@ class Verify:
             if isinstance(self.avg_axis, list):
                 self.avg_axis = tuple(self.avg_axis)
             assert isinstance(self.avg_axis, tuple)
-    
-    def _validate(self):
+            
+    def _validate_saving(self):
         
-        # Check average axis
-        self._validate_avg_axis()
-            
-        # Check boot samples
-        if self.boot_samples is not None:
-            assert isinstance(self.boot_samples, int)
-            
-        # Check start_from_scratch
-        assert isinstance(self.start_from_scratch, bool)
-            
-        # Check working directory
         if self.working_directory:
             assert isinstance(self.working_directory, str)
             self.working_directory = os.path.expanduser(self.working_directory)
@@ -144,6 +148,24 @@ class Verify:
                     os.makedirs(self.working_directory)
             else:
                 os.makedirs(self.working_directory)
+    
+    def _validate_boot_samples(self):
+        if self.boot_samples is not None:
+            assert isinstance(self.boot_samples, int)
+    
+    def _validate(self):
+        
+        # Check average axis
+        self._validate_avg_axis()
+            
+        # Check boot samples
+        self._validate_boot_samples()
+            
+        # Check start_from_scratch
+        assert isinstance(self.start_from_scratch, bool)
+            
+        # Check working directory
+        self._validate_saving()
     
     def _save_npy(self, name, arr):
         if self.working_directory:

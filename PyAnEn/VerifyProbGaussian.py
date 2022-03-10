@@ -28,11 +28,16 @@ class VerifyProbGaussian(VerifyProb):
         
         super().__init__(f, o, move_sampled_ens_axis, avg_axis, n_sample_members, boot_samples, working_directory, start_from_scratch)
         
-    def _validate(self):
-        super()._validate()
-        
+    def set_truncation(self, use_truncation):
+        self.truncated = use_truncation
+        self._validate_truncation()
+    
+    def _validate_truncation(self):
         assert isinstance(self.truncated, bool)
         
+    def _validate(self):
+        super()._validate()
+        self._validate_truncation()
         assert 'mu' in self.f.keys()
         assert 'sigma' in self.f.keys()
         
@@ -51,6 +56,7 @@ class VerifyProbGaussian(VerifyProb):
     
     def _crps(self):
         if self.truncated:
+            # TODO: Implement the CRPS with truncated gaussian
             raise NotImplementedError
         else:
             return ps.crps_gaussian(self.o, mu=self.f['mu'], sig=self.f['sigma'])

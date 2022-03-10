@@ -170,7 +170,7 @@ def calculate_roc(f_prob, o_binary):
 # Functions for Bootstraping #
 ##############################
 
-def boot_vec(pop, n_samples=None, repeats=None, confidence=None, pbar=None, skip_nan=False):
+def boot_vec(pop, n_samples=None, repeats=None, confidence=None, pbar=None, skip_nan=False, return_delta=True):
     # Reference: https://www.cawcr.gov.au/projects/verification/BootstrapCIs.html
     
     if n_samples is None: n_samples = int(os.environ['pyanen_boot_samples'])
@@ -191,8 +191,11 @@ def boot_vec(pop, n_samples=None, repeats=None, confidence=None, pbar=None, skip
     
     if pbar is not None:
         pbar.update(1)
-        
-    return np.array([ci[0], sample_mean, ci[1]])
+    
+    if return_delta:
+        return np.array([sample_mean, sample_mean - ci[0]])
+    else:
+        return np.array([ci[0], sample_mean, ci[1]])
 
 
 def boot_arr(metric, sample_axis, n_samples=None, repeats=None, confidence=None):
@@ -223,7 +226,8 @@ def boot_arr(metric, sample_axis, n_samples=None, repeats=None, confidence=None)
               leave=util.strtobool(os.environ['pyanen_tqdm_leave'])) as pbar:
         intervals = np.apply_along_axis(boot_vec, 0, metric, n_samples=n_samples,
                                         repeats=repeats, confidence=confidence, pbar=pbar,
-                                        skip_nan=util.strtobool(os.environ['pyanen_skip_nan']))
+                                        skip_nan=util.strtobool(os.environ['pyanen_skip_nan']),
+                                        return_delta=util.strtobool(os.environ['pyanen_boot_return_delta']))
         
     intervals = intervals.reshape(-1, *shape_to_keep)
     

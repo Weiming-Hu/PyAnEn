@@ -17,6 +17,7 @@ Defaults = {
     'pyanen_boot_confidence': 0.95,
     'pyanen_boot_repeats': 1000,
     'pyanen_boot_samples': 300,
+    'pyanen_boot_return_delta': True,
     'pyanen_tqdm_disable': True,
     'pyanen_tqdm_leave': False,
     'pyanen_use_tensorflow_math': False,

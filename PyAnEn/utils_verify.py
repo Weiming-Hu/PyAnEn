@@ -37,7 +37,7 @@ DEFAULTS = {
     'pyanen_boot_samples': 300,
     'pyanen_tqdm_disable': True,
     'pyanen_tqdm_leave': False,
-    'pyanen_lbeta_tensorflow': False,
+    'pyanen_use_tensorflow_math': False,
 }
 
 for k, v in DEFAULTS.items():
@@ -390,35 +390,29 @@ def crps_csgd(mu, sigma, shift, obs, reduce_sum=True):
     # F_k_y = tf.math.igamma(shape, 1. * y_bar)
     F_k_y = stats.gamma.cdf(1. * y_bar, shape)
     
-    c1 = y_bar * (2. * F_k_y - 1.)
+    c_bar = (-1 * shift) / scale
     
     # Second term in Eq. (5)
-    if bool(os.environ['pyanen_lbeta_tensorflow']):
+    if bool(os.environ['pyanen_use_tensorflow_math']):
         import tensorflow as tf
         lbeta_ret = tf.math.lbeta(tf.stack([np.full(mu.shape, 0.5), shape + 0.5], axis=len(shape.shape))).numpy()
+        F_2k_2c = tf.math.igamma(2. * shape, 1. * 2. * c_bar).numpy()
+        F_k_c = tf.math.igamma(shape, 1. * c_bar).numpy()
+        F_kp1_y = tf.math.igamma(shape+1., 1. * y_bar).numpy()
+        F_kp1_c = tf.math.igamma(shape+1., 1. * c_bar).numpy()
     else:
         lbeta_ret = _lbeta(np.full(mu.shape, 0.5), shape + 0.5)
+        F_2k_2c = stats.gamma.cdf(1. * 2. * c_bar, 2. * shape)
+        F_k_c = stats.gamma.cdf(1. * c_bar, shape)
+        F_kp1_y = stats.gamma.cdf(1. * y_bar, shape+1.)
+        F_kp1_c = stats.gamma.cdf(1. * c_bar, shape+1.)
         
     B_05_kp05 = np.exp(lbeta_ret)
     
-    c_bar = (-1 * shift) / scale
-    # F_2k_2c = tf.math.igamma(2. * shape, 1. * 2. * c_bar)
-    F_2k_2c = stats.gamma.cdf(1. * 2. * c_bar, 2. * shape)
-    
-    c4 = (shape / np.pi) * B_05_kp05 * (1. - F_2k_2c)
-    
-    # Third term in Eq. (5)
-    # F_k_c = tf.math.igamma(shape, 1. * c_bar)
-    F_k_c = stats.gamma.cdf(1. * c_bar, shape)
-    # F_kp1_y = tf.math.igamma(shape+1., 1. * y_bar)
-    F_kp1_y = stats.gamma.cdf(1. * y_bar, shape+1.)
-    # F_kp1_c = tf.math.igamma(shape+1., 1. * c_bar)
-    F_kp1_c = stats.gamma.cdf(1. * c_bar, shape+1.)
-    
+    c1 = y_bar * (2. * F_k_y - 1.)
     c2 = shape * (2. * F_kp1_y - 1. + np.square(F_k_c) - 2. * F_kp1_c * F_k_c)
-    
-    # Fourth term in Eq. (5)
     c3 = c_bar * np.square(F_k_c)
+    c4 = (shape / np.pi) * B_05_kp05 * (1. - F_2k_2c)
     
     crps = c1 - c2 - c3 - c4
     

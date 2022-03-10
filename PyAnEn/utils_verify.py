@@ -37,7 +37,7 @@ DEFAULTS = {
     'pyanen_boot_samples': 300,
     'pyanen_tqdm_disable': True,
     'pyanen_tqdm_leave': False,
-    'pyanen_numpy_as_float': True,
+    'pyanen_numpy_as_float64': True,
 }
 
 for k, v in DEFAULTS.items():
@@ -383,12 +383,12 @@ def crps_csgd(mu, sigma, shift, obs, reduce_sum=True):
     lbeta_arr = np.full(mu.shape, 0.5)
     
     # Convert type to increase stability
-    if bool(os.environ['pyanen_numpy_as_float']):
-        mu = mu.astype(np.float)
-        sigma = sigma.astype(np.float)
-        shift = shift.astype(np.float)
-        obs = obs.astype(np.float)
-        lbeta_arr = lbeta_arr.astype(np.float)
+    if bool(os.environ['pyanen_numpy_as_float64']):
+        mu = mu.astype(np.float64)
+        sigma = sigma.astype(np.float64)
+        shift = shift.astype(np.float64)
+        obs = obs.astype(np.float64)
+        lbeta_arr = lbeta_arr.astype(np.float64)
     
     # Calculate distribution parameters
     shape = np.square(mu / sigma)

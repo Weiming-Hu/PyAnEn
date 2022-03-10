@@ -3,6 +3,8 @@
 - Added verification classes for deterministic, probabilistic, and ensemble forecasts
 - Added progress bar from tqdm
 - Added unit tests
+- Recursively create and remove folders
+- CRPS calculation confines numpy arrays to be float to improve stability
 
 # PyAnEn 0.2.1
 

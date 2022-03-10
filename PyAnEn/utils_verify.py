@@ -37,6 +37,7 @@ DEFAULTS = {
     'pyanen_boot_samples': 300,
     'pyanen_tqdm_disable': True,
     'pyanen_tqdm_leave': False,
+    'pyanen_numpy_as_float': True,
 }
 
 for k, v in DEFAULTS.items():
@@ -379,10 +380,16 @@ def _lbeta(x1, x2):
 
 def crps_csgd(mu, sigma, shift, obs, reduce_sum=True):
     
+    # Convert type to increase stability
+    if bool(os.environ['pyanen_numpy_as_float']):
+        mu = mu.astype(np.float)
+        sigma = sigma.astype(np.float)
+        shift = shift.astype(np.float)
+        obs = obs.astype(np.float)
+    
+    # Calculate distribution parameters
     shape = np.square(mu / sigma)
     scale = (np.square(sigma)) / mu
-    
-    # print('shape: {}; scale: {}; shift: {}'.format(shape, scale, shift))
     
     # First term in Eq. (5)
     y_bar = (obs - shift) / scale
@@ -415,8 +422,7 @@ def crps_csgd(mu, sigma, shift, obs, reduce_sum=True):
     # Fourth term in Eq. (5)
     c3 = c_bar * np.square(F_k_c)
     
-    crps = c1 - c2 - c3 - c4        
+    crps = c1 - c2 - c3 - c4
     
     CRPS = crps * scale
-    CRPS += sigma * 0.05
     return np.mean(CRPS) if reduce_sum else CRPS

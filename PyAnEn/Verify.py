@@ -12,6 +12,7 @@
 #
 
 import os
+import shutil
 
 import numpy as np
 
@@ -127,10 +128,10 @@ class Verify:
             
             if os.path.exists(self.working_directory):
                 if self.start_from_scratch:
-                    os.rmdir(self.working_directory)
-                    os.mkdir(self.working_directory)
+                    shutil.rmtree(self.working_directory)
+                    os.makedirs(self.working_directory)
             else:
-                os.mkdir(self.working_directory)
+                os.makedirs(self.working_directory)
     
     def _save_npy(self, name, arr):
         if self.working_directory:

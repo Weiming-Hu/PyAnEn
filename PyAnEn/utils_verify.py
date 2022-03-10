@@ -380,12 +380,15 @@ def _lbeta(x1, x2):
 
 def crps_csgd(mu, sigma, shift, obs, reduce_sum=True):
     
+    lbeta_arr = np.full(mu.shape, 0.5)
+    
     # Convert type to increase stability
     if bool(os.environ['pyanen_numpy_as_float']):
         mu = mu.astype(np.float)
         sigma = sigma.astype(np.float)
         shift = shift.astype(np.float)
         obs = obs.astype(np.float)
+        lbeta_arr = lbeta_arr.astype(np.float)
     
     # Calculate distribution parameters
     shape = np.square(mu / sigma)
@@ -401,7 +404,7 @@ def crps_csgd(mu, sigma, shift, obs, reduce_sum=True):
     
     # Second term in Eq. (5)
     # B_05_kp05 = K.exp(tf.math.lbeta(tf.stack([tf.fill(tf.shape(shape), 0.5), shape + 0.5], axis=len(shape.shape))))
-    B_05_kp05 = np.exp(_lbeta(np.full(shape.shape, 0.5), shape + 0.5))
+    B_05_kp05 = np.exp(_lbeta(lbeta_arr, shape + 0.5))
     
     c_bar = (-1 * shift) / scale
     # F_2k_2c = tf.math.igamma(2. * shape, 1. * 2. * c_bar)

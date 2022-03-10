@@ -18,8 +18,8 @@ import os
 import numpy as np
 import properscoring as ps
 
-
 from distutils import util
+from tqdm.auto import tqdm
 from .Verify import Verify
 from functools import partial
 from .utils_verify import ens_to_prob
@@ -63,7 +63,24 @@ class VerifyEnsemble(Verify):
         return np.abs(self.f_determ - self.o)
     
     def _crps(self):
-        return ps.crps_ensemble(observations=self.o, forecasts=self.f, axis=self.ensemble_axis)
+        if util.strtobool(os.environ['pyanen_split_crps_ensemble_along_0']):
+            
+            # Move ensemble axis to the last one if it is not already
+            if self.ensemble_axis == -1 or self.ensemble_axis == len(self.f.shape) - 1:
+                _f = self.f
+            else:
+                _f = np.moveaxis(self.f, self.ensemble_axis, -1)
+                
+            crps = [ps.crps_ensemble(self.o[i], _f[i], axis=-1)
+                    for i in tqdm(
+                        range(self.o.shape[0]),
+                        disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
+                        leave=util.strtobool(os.environ['pyanen_tqdm_leave']))]
+            
+            return np.stack(crps, axis=0)
+        
+        else:
+            return ps.crps_ensemble(observations=self.o, forecasts=self.f, axis=self.ensemble_axis)
     
     def _rank_hist(self):
         return rank_histogram(f=self.f, o=self.o, ensemble_axis=self.ensemble_axis)

@@ -20,7 +20,8 @@ Defaults = {
     'pyanen_tqdm_disable': True,
     'pyanen_tqdm_leave': False,
     'pyanen_use_tensorflow_math': False,
-    'pyanen_skip_nan': False
+    'pyanen_skip_nan': False,
+    'pyanen_split_crps_ensemble_along_0': False,
 }
 
 for k, v in Defaults.items():

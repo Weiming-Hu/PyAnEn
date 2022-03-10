@@ -37,7 +37,7 @@ DEFAULTS = {
     'pyanen_boot_samples': 300,
     'pyanen_tqdm_disable': True,
     'pyanen_tqdm_leave': False,
-    'pyanen_numpy_as_float64': True,
+    'pyanen_lbeta_tensorflow': False,
 }
 
 for k, v in DEFAULTS.items():
@@ -380,16 +380,6 @@ def _lbeta(x1, x2):
 
 def crps_csgd(mu, sigma, shift, obs, reduce_sum=True):
     
-    lbeta_arr = np.full(mu.shape, 0.5)
-    
-    # Convert type to increase stability
-    if bool(os.environ['pyanen_numpy_as_float64']):
-        mu = mu.astype(np.float64)
-        sigma = sigma.astype(np.float64)
-        shift = shift.astype(np.float64)
-        obs = obs.astype(np.float64)
-        lbeta_arr = lbeta_arr.astype(np.float64)
-    
     # Calculate distribution parameters
     shape = np.square(mu / sigma)
     scale = (np.square(sigma)) / mu
@@ -403,8 +393,13 @@ def crps_csgd(mu, sigma, shift, obs, reduce_sum=True):
     c1 = y_bar * (2. * F_k_y - 1.)
     
     # Second term in Eq. (5)
-    # B_05_kp05 = K.exp(tf.math.lbeta(tf.stack([tf.fill(tf.shape(shape), 0.5), shape + 0.5], axis=len(shape.shape))))
-    B_05_kp05 = np.exp(_lbeta(lbeta_arr, shape + 0.5))
+    if bool(os.environ['pyanen_lbeta_tensorflow']):
+        import tensorflow as tf
+        lbeta_ret = tf.math.lbeta(tf.stack([np.full(mu.shape, 0.5), shape + 0.5], axis=len(shape.shape))).numpy()
+    else:
+        lbeta_ret = _lbeta(np.full(mu.shape, 0.5), shape + 0.5)
+        
+    B_05_kp05 = np.exp(lbeta_ret)
     
     c_bar = (-1 * shift) / scale
     # F_2k_2c = tf.math.igamma(2. * shape, 1. * 2. * c_bar)

@@ -2,6 +2,7 @@
 import os
 
 os.environ['pyanen_boot_repeats'] = '30'
+os.environ['pyanen_lbeta_tensorflow'] = 'True'
 
 # Load other modules
 import pytest

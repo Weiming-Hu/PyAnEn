@@ -29,6 +29,7 @@ from .utils_verify import _binned_spread_skill_create_split
 
 
 class VerifyEnsemble(Verify):
+        
     def __init__(self, f, o, ensemble_axis=None, ensemble_collapse_func=np.mean,
                  avg_axis=None, boot_samples=None, working_directory=None, start_from_scratch=True):
         
@@ -147,3 +148,11 @@ class VerifyEnsemble(Verify):
     
     def _collapse_ensembles(self):
         self.f_determ = self.ensemble_collapse_func(self.f, axis=self.ensemble_axis)
+    
+    def __str__(self):
+        msg = super().__str__()
+        msg += '\nForecasts (f): {}'.format(self.f.shape)
+        msg += '\nObservations (o): {}'.format(self.o.shape)
+        msg += '\nEnsemble axis (ensemble_axis): {}'.format(self.ensemble_axis)
+        msg += '\nEnsemble collapsing function (ensemble_collapse_func): {}'.format(self.ensemble_collapse_func.__name__)
+        return msg

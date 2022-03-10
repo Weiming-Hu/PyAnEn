@@ -20,12 +20,11 @@ from .utils_dist import sample_dist_csgd, cdf_csgd
 
 
 class VerifyProbCSGD(VerifyProb):
+    
     def __init__(self, f, o, move_sampled_ens_axis=-1, avg_axis=None, n_sample_members=None,
                  boot_samples=None, working_directory=None, start_from_scratch=True):
         
-        self.move_sampled_ens_axis = move_sampled_ens_axis
-        
-        super().__init__(f, o, avg_axis, n_sample_members, boot_samples, working_directory, start_from_scratch)
+        super().__init__(f, o, move_sampled_ens_axis, avg_axis, n_sample_members, boot_samples, working_directory, start_from_scratch)
         
     def _validate(self):
         super()._validate()
@@ -34,8 +33,6 @@ class VerifyProbCSGD(VerifyProb):
         assert 'sigma' in self.f.keys()
         assert 'shift' in self.f.keys()
         assert 'unshifted_mu' in self.f.keys()
-        
-        assert isinstance(self.move_sampled_ens_axis, int)
         
     def _prob_to_determ(self):
         return self.f['mu']

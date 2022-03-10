@@ -5,6 +5,7 @@
 - Added unit tests
 - Recursively create and remove folders
 - CRPS calculation confines numpy arrays to be float to improve stability
+- Added str methods
 
 # PyAnEn 0.2.1
 

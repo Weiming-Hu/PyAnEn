@@ -25,15 +25,13 @@ class VerifyProbGaussian(VerifyProb):
                  boot_samples=None, working_directory=None, start_from_scratch=True):
         
         self.truncated = truncated
-        self.move_sampled_ens_axis = move_sampled_ens_axis
         
-        super().__init__(f, o, avg_axis, n_sample_members, boot_samples, working_directory, start_from_scratch)
+        super().__init__(f, o, move_sampled_ens_axis, avg_axis, n_sample_members, boot_samples, working_directory, start_from_scratch)
         
     def _validate(self):
         super()._validate()
         
         assert isinstance(self.truncated, bool)
-        assert isinstance(self.move_sampled_ens_axis, int)
         
         assert 'mu' in self.f.keys()
         assert 'sigma' in self.f.keys()
@@ -56,3 +54,8 @@ class VerifyProbGaussian(VerifyProb):
             raise NotImplementedError
         else:
             return ps.crps_gaussian(self.o, mu=self.f['mu'], sig=self.f['sigma'])
+    
+    def __str__(self):
+        msg = super().__str__()
+        msg += '\nTruncated distribution (truncated): {}'.format(', '.join(self.truncated))
+        return msg

@@ -53,3 +53,9 @@ class VerifyDeterm(Verify):
     
     def _ab_error(self):
         return np.abs(self.f - self.o)
+    
+    def __str__(self):
+        msg = super().__str__()
+        msg += '\nForecasts (f): {}'.format(self.f.shape)
+        msg += '\nObservations (o): {}'.format(self.o.shape)
+        return msg

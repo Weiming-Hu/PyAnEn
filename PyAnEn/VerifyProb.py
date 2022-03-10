@@ -26,12 +26,15 @@ from .utils_verify import _binned_spread_skill_create_split
 
 
 class VerifyProb(Verify):
-    def __init__(self, f, o, avg_axis=None, n_sample_members=None, boot_samples=None,
+    
+    def __init__(self, f, o, move_sampled_ens_axis=-1, avg_axis=None,
+                 n_sample_members=None, boot_samples=None,
                  working_directory=None, start_from_scratch=True):
         
         self.f = f
         self.o = o
         self.n_sample_members = n_sample_members
+        self.move_sampled_ens_axis = move_sampled_ens_axis
         
         super().__init__(avg_axis, boot_samples, working_directory, start_from_scratch)
     
@@ -98,6 +101,8 @@ class VerifyProb(Verify):
     
     def _validate(self):
         super()._validate()
+        
+        assert isinstance(self.move_sampled_ens_axis, int)
     
         # Check forecasts and observations
         assert hasattr(self.f, 'keys'), 'f should be dict-like'
@@ -113,3 +118,11 @@ class VerifyProb(Verify):
         # Check number of ensemble members to sample
         if self.n_sample_members is not None:
             assert isinstance(self.n_sample_members, int)
+    
+    def __str__(self):
+        msg = super().__str__()
+        msg += '\nForecast (f): {}'.format(', '.join(self.f.keys()))
+        msg += '\nObservations (o): {}'.format(self.o.shape)
+        msg += '\nEnsemble members to sample (n_sample_members): {}'.format(self.n_sample_members)
+        msg += '\nMove generated ensemble axis to (move_sampled_ens_axis): {}'.format(self.move_sampled_ens_axis)
+        return msg

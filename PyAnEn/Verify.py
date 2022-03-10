@@ -98,21 +98,33 @@ class Verify:
         else:
             # Use bootstraping to create CI
             return _binned_spread_skill_agg_boot(*metric)
+    
+    ########################
+    # Other Public Methods #
+    ########################
+    
+    def set_avg_axis(self, x):
+        self.avg_axis = x
+        self._validate_avg_axis()
             
     
     ###################
     # Private Methods #
     ###################
     
-    def _validate(self):
+    def _validate_avg_axis(self):
         
-        # Check average axis
         if self.avg_axis is not None:
             if isinstance(self.avg_axis, int):
                 self.avg_axis = (self.avg_axis, )
             if isinstance(self.avg_axis, list):
                 self.avg_axis = tuple(self.avg_axis)
             assert isinstance(self.avg_axis, tuple)
+    
+    def _validate(self):
+        
+        # Check average axis
+        self._validate_avg_axis()
             
         # Check boot samples
         if self.boot_samples is not None:
@@ -163,3 +175,11 @@ class Verify:
     def _metric_workflow_3(self, save_name, func, post_func, **kwargs):
         metric = self._metric_workflow_1(save_name, func, **kwargs)
         return post_func(metric)
+    
+    def __str__(self):
+        msg = '========== PyAnEn Verifier =========='
+        msg += '\nAverage/Sample axis (avg_axis): {}'.format(self.avg_axis)
+        msg += '\nBootstrap samples (boot_samples): {}'.format(self.boot_samples)
+        msg += '\nSave intermediate data at (working_directory): {}'.format(self.working_directory)
+        msg += '\nIgnore saved intermediate data (start_from_scratch): {}'.format(self.start_from_scratch)
+        return msg

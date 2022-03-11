@@ -119,40 +119,48 @@ def ens_to_prob_kde(ens, over=None, below=None, bandwidth=None, kernel=None,
     return np.sum(np.exp(kde.score_samples(x))) * interval
 
 
-def ens_to_prob_moments(ens, over=None, below=None, pbar=None):
+def ens_to_prob_moments(ens, over=None, below=None, pbar=None, axis=None):
     
     if pbar is not None:
         pbar.update(1)
     
     if over is None:
-        return np.count_nonzero(ens <= below) / len(ens)
+        return np.count_nonzero(ens <= below, axis=axis) / len(ens) if axis is None else ens.shape[axis]
     else:
-        return np.count_nonzero(ens >= over) / len(ens)
+        return np.count_nonzero(ens >= over, axis=axis) / len(ens)  if axis is None else ens.shape[axis]
 
 
 def ens_to_prob(f, ensemble_aixs, over=None, below=None):
     assert (over is None) ^ (below is None), 'Must specify over or below'
     
-    if os.environ['pyanen_ens_to_prob_method'] == 'kde':
-        transfer_func = ens_to_prob_kde
-    elif os.environ['pyanen_ens_to_prob_method'] == 'moments':
-        transfer_func = ens_to_prob_moments
-    else:
-        msg = 'Unknown method for converting ensembles to probability. ' + \
-            'Got {}. Expect one of [kde, moments]'.format(os.environ['pyanen_ens_to_prob_method'])
-            
-        raise Exception(msg)
-    
     cores = int(os.environ['pyanen_tqdm_workers'])
     
     if cores == 1:
-        with tqdm(total=np.prod(np.delete(f.shape, ensemble_aixs)),
-                disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
-                leave=util.strtobool(os.environ['pyanen_tqdm_leave'])) as pbar:
+        if os.environ['pyanen_ens_to_prob_method'] == 'kde':
+            with tqdm(total=np.prod(np.delete(f.shape, ensemble_aixs)),
+                    disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
+                    leave=util.strtobool(os.environ['pyanen_tqdm_leave'])) as pbar:
+                
+                ret = np.apply_along_axis(transfer_func, ensemble_aixs, f, over=over, below=below, pbar=pbar)
+                
+        elif os.environ['pyanen_ens_to_prob_method'] == 'moments':
+            ret = ens_to_prob_moments(f, over=over, below=below, axis=ensemble_aixs)
             
-            ret = np.apply_along_axis(transfer_func, ensemble_aixs, f, over=over, below=below, pbar=pbar)
+        else:
+            msg = 'Unknown method for converting ensembles to probability. ' + \
+                'Got {}. Expect one of [kde, moments]'.format(os.environ['pyanen_ens_to_prob_method'])
+            raise Exception(msg)
             
     else:
+        if os.environ['pyanen_ens_to_prob_method'] == 'kde':
+            transfer_func = ens_to_prob_kde
+        elif os.environ['pyanen_ens_to_prob_method'] == 'moments':
+            transfer_func = ens_to_prob_moments
+        else:
+            msg = 'Unknown method for converting ensembles to probability. ' + \
+                'Got {}. Expect one of [kde, moments]'.format(os.environ['pyanen_ens_to_prob_method'])
+            raise Exception(msg)
+        
         # Move axis
         f = np.moveaxis(f, ensemble_aixs, 0)
         

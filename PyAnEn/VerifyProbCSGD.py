@@ -41,7 +41,7 @@ class VerifyProbCSGD(VerifyProb):
         return self.f['sigma'] ** 2
     
     def _prob_to_ens(self):
-        assert self.n_sample_members is not None, 'Set the number of members to sample, e.g., obj.n_sample_members = 15'
+        assert self.n_sample_members is not None, 'Set the number of members to sample, e.g., obj.set_ensemble_members(15)'
         return sample_dist_csgd(
             self.f['unshifted_mu'], self.f['sigma'], self.f['shift'],
             self.n_sample_members, self.move_sampled_ens_axis)

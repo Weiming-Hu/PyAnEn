@@ -119,8 +119,29 @@ def ens_to_prob_kde(ens, over=None, below=None, bandwidth=None, kernel=None,
     return np.sum(np.exp(kde.score_samples(x))) * interval
 
 
+def ens_to_prob_moments(ens, over=None, below=None, pbar=None):
+    
+    if pbar is not None:
+        pbar.update(1)
+    
+    if over is None:
+        return np.count_nonzero(ens <= below) / len(ens)
+    else:
+        return np.count_nonzero(ens >= over) / len(ens)
+
+
 def ens_to_prob(f, ensemble_aixs, over=None, below=None):
     assert (over is None) ^ (below is None), 'Must specify over or below'
+    
+    if os.environ['pyanen_ens_to_prob_method'] == 'kde':
+        transfer_func = ens_to_prob_kde
+    elif os.environ['pyanen_ens_to_prob_method'] == 'moments':
+        transfer_func = ens_to_prob_moments
+    else:
+        msg = 'Unknown method for converting ensembles to probability. ' + \
+            'Got {}. Expect one of [kde, moments]'.format(os.environ['pyanen_ens_to_prob_method'])
+            
+        raise Exception(msg)
     
     cores = int(os.environ['pyanen_tqdm_workers'])
     
@@ -129,7 +150,7 @@ def ens_to_prob(f, ensemble_aixs, over=None, below=None):
                 disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
                 leave=util.strtobool(os.environ['pyanen_tqdm_leave'])) as pbar:
             
-            ret = np.apply_along_axis(ens_to_prob_kde, ensemble_aixs, f, over=over, below=below, pbar=pbar)
+            ret = np.apply_along_axis(transfer_func, ensemble_aixs, f, over=over, below=below, pbar=pbar)
             
     else:
         # Move axis
@@ -142,9 +163,9 @@ def ens_to_prob(f, ensemble_aixs, over=None, below=None):
         
         chunksize = int(os.environ['pyanen_tqdm_chunksize'])
         parallelize_axis = int(os.environ['pyanen_tqdm_map_axis'])
-        assert parallelize_axis == -1, 'parallelize_axis needs to be -1 for the ens_to_prob operation'
+        assert parallelize_axis == -1, 'parallelize_axis needs to be -1 for the ens_to_prob operation. Got {}'.format(parallelize_axis)
         
-        ret = process_map(partial(ens_to_prob_kde, over=over, below=below),
+        ret = process_map(partial(transfer_func, over=over, below=below),
                           np.split(f, f.shape[parallelize_axis], parallelize_axis),
                           disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
                           leave=util.strtobool(os.environ['pyanen_tqdm_leave']),

@@ -23,11 +23,29 @@ import scipy.stats as st
 from distutils import util
 from tqdm.auto import tqdm
 from sklearn import metrics
-from functools import partial
 from scipy import stats, special
-from scipy.stats import rankdata
 from sklearn.neighbors import KernelDensity
 from tqdm.contrib.concurrent import process_map
+
+
+def rankdata(x):
+    ranks = stats.rankdata(x, method='min', axis=0)
+    
+    obs_ranks = ranks[0]
+    
+    # Check for ties
+    ties = np.nansum(ranks[0] == ranks[1:], axis=0)
+    unique_tie = np.unique(ties)
+    unique_tie = unique_tie[~np.isnan(unique_tie)]
+    
+    # For ties, randomly decide which bin the observation should go to
+    for i in range(1, len(unique_tie)):
+        
+        index = obs_ranks[ties == unique_tie[i]]
+        obs_ranks[ties == unique_tie[i]] = [np.random.randint(index[j], index[j] + unique_tie[i] + 1, unique_tie[i])[0] 
+                                            for j in range(len(index))]
+    
+    return obs_ranks
 
 
 def rank_histogram(f, o, ensemble_axis, parallelize_axis=-1):
@@ -51,37 +69,22 @@ def rank_histogram(f, o, ensemble_axis, parallelize_axis=-1):
     cores = int(os.environ['pyanen_tqdm_workers'])
     
     if cores == 1:
-        ranks = rankdata(c, method='min', axis=0)
+        obs_ranks = rankdata(c)
     else:
         parallelize_axis = int(os.environ['pyanen_tqdm_map_axis'])
         chunksize = int(os.environ['pyanen_tqdm_chunksize'])
+        assert parallelize_axis < 0, 'parallelize_axis needs to be negative, counting from the end of dimensions'
         
-        rankdata_wrapper = partial(rankdata, method='min', axis=0)
-        
-        ranks = process_map(rankdata_wrapper,
+        ranks = process_map(rankdata,
                             np.split(c, c.shape[parallelize_axis], parallelize_axis),
                             disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
                             leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
                             chunksize=chunksize, max_workers=cores)
         
-        ranks = np.concatenate(ranks, axis=parallelize_axis)
-    
-    # Retrieves observation ranks
-    obs_ranks = ranks[0]
-    obs_ranks = obs_ranks.astype(np.float)
-    
-    # Check for ties
-    ties = np.nansum(ranks[0] == ranks[1:], axis=0)
-    unique_tie = np.unique(ties)
-    unique_tie = unique_tie[~np.isnan(unique_tie)]
-    
-    # For ties, randomly decide which bin the observation should go to
-    for i in range(1, len(unique_tie)):
-        index = obs_ranks[ties == unique_tie[i]]
-        obs_ranks[ties == unique_tie[i]] = [np.random.randint(index[j], index[j] + unique_tie[i] + 1, unique_tie[i])[0] 
-                                            for j in range(len(index))]
+        obs_ranks = np.concatenate(ranks, axis=parallelize_axis)
     
     if util.strtobool(os.environ['pyanen_skip_nan']):
+        obs_ranks = obs_ranks.astype(np.float)
         obs_ranks[final_mask] = np.nan
         
     return obs_ranks

@@ -159,6 +159,11 @@ class VerifyEnsemble(Verify):
             self._guess_ensemble_axis()
         else:
             assert isinstance(self.ensemble_axis, int)
+            
+        assert self.ensemble_axis == 0 or self.ensemble_axis == -1 or \
+            self.ensemble_axis == -len(self.f.shape) or \
+            self.ensemble_axis == len(self.f.shape) - 1, \
+            'Ensemble axis needs to be either the first or the last'
         
         # Check dimensions
         f_shape, o_shape = list(self.f.shape), list(self.o.shape)

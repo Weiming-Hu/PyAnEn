@@ -24,6 +24,8 @@ pip install git+https://github.com/Weiming-Hu/PyAnEn.git
 | MAE                      | ab_error            | Yes                    | Yes                      | No                 |
 | Brier Score              | brier               | Yes                    | Yes                      | Yes for ensembles  |
 | Spread Skill Correlation | binned_spread_skill | Yes                    | Yes                      | No                 |
+| IOU (Deterministic)      | iou_determ          | Yes                    | No                       | No                 |
+| IOU (Probability)        | iou_prob            | Yes                    | No                       | No                 |
 | Rank Histogram           | rank_hist           | Yes                    | No                       | Yes                |
 | Sharpness                | sharpness           | Yes                    | No                       | Yes for ensembles  |
 | Reliability Diagram      | reliability         | No                     | No                       | Yes for ensembles  |

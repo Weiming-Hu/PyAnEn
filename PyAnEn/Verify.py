@@ -49,18 +49,25 @@ class Verify:
     # Metric Methods #
     ##################
     
-    # TODO: how to make it easier to visulize rank histogram results?
     def rank_hist(self, save_name='rank'): return self._metric_workflow_1(save_name, self._rank_hist)
     def reliability(self, nbins=15, over=None, below=None, save_name='rel'): return self._metric_workflow_1('_'.join([save_name, str(nbins), str(over), str(below)]), self._reliability, nbins=nbins, over=over, below=below)
     def roc(self, over=None, below=None, save_name='roc'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._roc, over=over, below=below)
     def sharpness(self, over=None, below=None, save_name='sharpness'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._sharpness, over=over, below=below)
+    def iou_determ(self, over=None, below=None, save_name='iou_determ'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._iou_determ, over=over, below=below)
+    def iou_prob(self, over=None, below=None, save_name='iou_prob'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._iou_prob, over=over, below=below)
+    
     def crps(self, save_name='crps'): return self._metric_workflow_2(save_name, self._crps)
     def error(self, save_name='error'): return self._metric_workflow_2(save_name, self._error)
     def spread(self, save_name='spread'): return self._metric_workflow_2(save_name, self._spread)
     def sq_error(self, save_name='sq_error'): return self._metric_workflow_2(save_name, self._sq_error)
     def ab_error(self, save_name='ab_error'): return self._metric_workflow_2(save_name, self._ab_error)
     def brier(self, over=None, below=None, save_name='brier'): return self._metric_workflow_2('_'.join([save_name, str(over), str(below)]), self._brier, over=over, below=below)
+    
     def binned_spread_skill(self, nbins=15, save_name='ss'): return self._metric_workflow_3('_'.join([save_name, str(nbins)]), self._binned_spread_skill, self.post_binned_spread_skill, nbins=nbins)
+    
+    def _iou_determ(self, over=None, below=None): raise NotImplementedError
+    def _iou_prob(self, over=None, below=None): raise NotImplementedError
+    
 
     def rmse(self, save_name='sq_error'):
         return np.sqrt(self.sq_error(save_name=save_name))

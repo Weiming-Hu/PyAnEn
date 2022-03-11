@@ -22,6 +22,8 @@ from distutils import util
 from tqdm.auto import tqdm
 from .Verify import Verify
 from functools import partial
+from .utils_verify import iou_prob
+from .utils_verify import iou_determ
 from .utils_verify import ens_to_prob
 from .utils_verify import binarize_obs
 from .utils_verify import calculate_roc
@@ -45,6 +47,7 @@ class VerifyEnsemble(Verify):
                          working_directory=working_directory,
                          start_from_scratch=start_from_scratch)
         
+        # Calculate the deterministic form of the ensemble forecasts
         self._collapse_ensembles()
     
     ###################
@@ -124,6 +127,20 @@ class VerifyEnsemble(Verify):
     
     def _sharpness(self, over=None, below=None):
         return self._ens_to_prob(over=over, below=below)
+    
+    def _iou_determ(self, over=None, below=None):
+        return iou_determ(self.f_determ, self.o, axis=self.avg_axis, over=over, below=below)
+    
+    def _iou_prob(self, over=(None, None), below=(None, None)):
+        
+        assert isinstance(over, tuple) or isinstance(over, list)
+        assert isinstance(below, tuple) or isinstance(below, list)
+        assert len(over) == 2 or len(below) == 2
+        
+        f_prob = self._ens_to_prob(over=over[0], below=below[0])
+        o_binary = binarize_obs(self.o, over=over[0], below=below[0])
+        
+        return iou_prob(f_prob, o_binary, axis=self.avg_axis, over=over[1], below=below[1])
     
     ###### Other Methods ######
     

@@ -19,6 +19,8 @@ import numpy as np
 
 from distutils import util
 from .Verify import Verify
+from .utils_verify import iou_prob
+from .utils_verify import iou_determ
 from .utils_verify import binarize_obs
 from .utils_verify import calculate_roc
 from .utils_verify import rank_histogram
@@ -109,6 +111,20 @@ class VerifyProb(Verify):
     
     def _sharpness(self, over=None, below=None):
         return self._cdf(over=over, below=below)
+    
+    def _iou_determ(self, over=None, below=None):
+        return iou_determ(self._prob_to_determ(), self.o, axis=self.avg_axis, over=over, below=below)
+    
+    def _iou_prob(self, over=(None, None), below=(None, None)):
+        
+        assert isinstance(over, tuple) or isinstance(over, list)
+        assert isinstance(below, tuple) or isinstance(below, list)
+        assert len(over) == 2 or len(below) == 2
+        
+        f_prob = self.cdf(over=over[0], below=below[0])
+        o_binary = binarize_obs(self.o, over=over[0], below=below[0])
+        
+        return iou_prob(f_prob, o_binary, axis=self.avg_axis, over=over[1], below=below[1])
     
     ###### Other Methods ######
     

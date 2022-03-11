@@ -202,7 +202,7 @@ def calculate_reliability(f_prob, o_binary, nbins, strategy=None):
     
     # Reliability diagram
     prob_true, prob_pred = calibration_curve(
-        y_true=o_binary, y_pred=f_prob, n_bins=nbins, normalize=False, strategy=strategy)
+        y_true=o_binary, y_prob=f_prob, n_bins=nbins, normalize=False, strategy=strategy)
     
     return prob_pred, prob_true
 
@@ -503,3 +503,47 @@ def crps_csgd(mu, sigma, shift, obs, reduce_sum=True):
             return np.mean(CRPS)
     else:
         return CRPS
+
+
+#####################
+# Functions for IOU #
+#####################
+
+def _iou(f_binary, o_binary, axis=None):
+    assert np.all(~np.isnan(f_binary)) and np.all(~np.isnan(o_binary))
+    
+    # Calculate components
+    intersect = f_binary & o_binary
+    union = f_binary | o_binary
+    
+    # IOU
+    iou = np.count_nonzero(intersect, axis=axis) / np.count_nonzero(union, axis=axis)
+    return iou
+
+
+def iou_determ(f, o, axis=None, over=None, below=None):
+    assert f.shape == o.shape
+    assert (over is None) ^ (below is None), 'Must specify over or below'
+    
+    if over is None:
+        f_binary = f < below
+        o_binary = o < below
+    else:
+        f_binary = f > over
+        o_binary = o > over
+    
+    return _iou(f_binary, o_binary, axis)
+
+
+def iou_prob(f_prob, o_binary, axis=None, over=None, below=None):
+    assert f_prob.shape == o_binary.shape
+    assert (over is None) ^ (below is None), 'Must specify over or below'
+    
+    if over is None:
+        assert 0 <= below <= 1, 'below needs to be a probability in [0, 1]'
+        f_binary = f_prob < below
+    else:
+        assert 0 <= over <= 1, 'over needs to be a probability in [0, 1]'
+        f_binary = f_prob > over
+    
+    return _iou(f_binary, o_binary, axis)

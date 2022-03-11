@@ -17,6 +17,7 @@
 import numpy as np
 
 from .Verify import Verify
+from .utils_verify import iou_determ
 
 
 class VerifyDeterm(Verify):
@@ -30,17 +31,6 @@ class VerifyDeterm(Verify):
                          working_directory=working_directory,
                          start_from_scratch=start_from_scratch)
     
-    def _validate(self):
-        super()._validate()
-        
-        # Check forecasts and observations
-        assert isinstance(self.f, np.ndarray)
-        assert isinstance(self.o, np.ndarray)
-        
-        # Check dimensions
-        f_shape, o_shape = list(self.f.shape), list(self.o.shape)
-        assert f_shape == o_shape, 'Shape mismatch: f ({}) and o ({})'.format(f_shape, o_shape)
-    
     ##################
     # Metric Methods #
     ##################
@@ -53,6 +43,24 @@ class VerifyDeterm(Verify):
     
     def _ab_error(self):
         return np.abs(self.f - self.o)
+    
+    def _iou_determ(self, over=None, below=None):
+        return iou_determ(self.f, self.o, axis=self.avg_axis, over=over, below=below)
+    
+    ###################
+    # Private Methods #
+    ###################
+    
+    def _validate(self):
+        super()._validate()
+        
+        # Check forecasts and observations
+        assert isinstance(self.f, np.ndarray)
+        assert isinstance(self.o, np.ndarray)
+        
+        # Check dimensions
+        f_shape, o_shape = list(self.f.shape), list(self.o.shape)
+        assert f_shape == o_shape, 'Shape mismatch: f ({}) and o ({})'.format(f_shape, o_shape)
     
     def __str__(self):
         msg = super().__str__()

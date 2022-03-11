@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from ranky import rankz
+from PyAnEn.utils_verify import iou_determ
 from PyAnEn.utils_verify import ens_to_prob
 from PyAnEn.utils_verify import rank_histogram
 
@@ -56,4 +57,35 @@ def test_EnsToProb_Moments():
     f_parallel = ens_to_prob(f, 3, over=11)
     
     assert np.all(f_serial == f_parallel)
+    
+def test_DetermIOU():
+    f = np.array([
+        [1, 2, 3, 4, 5, 4, 3, 2, 1],
+        [4, 5, 6.5, 7, 8, 7, 6, 5, 4],
+        [2, 3, 4, 5, 6, 5, 4, 3, 2],
+    ])
+    
+    o = np.array([
+        [1, 2, 3, 4, 5, 6, 7, 6, 5],
+        [4, 5, 6, 7, 8, 9, 10, 9, 8],
+        [2, 3, 4, 5, 6, 7, 8, 7, 6],
+    ])
+    
+    assert iou_determ(f=f, o=o, over=6) == 3/11
+    
+    o = np.array([
+        [1, 2, 3, 4, 5, 6, 7, 6, 5],
+        [4, 5, 6, 7, 8, 9, 10, 9, 8],
+        [2, 3, 4, 5, 6, 7, 8, np.nan, 6],
+    ])
+    
+    assert iou_determ(f=f, o=o, over=6) == 3/10
+    
+    f = np.array([
+        [1, 2, 3, 4, 5, 4, 3, 2, 1],
+        [4, 5, np.nan, 7, np.nan, 7, 6, 5, 4],
+        [2, 3, 4, 5, 6, 5, 4, 3, 2],
+    ])
+    
+    assert iou_determ(f=f, o=o, over=6) == 2/9
     

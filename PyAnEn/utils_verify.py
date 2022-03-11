@@ -213,7 +213,7 @@ def calculate_roc(f_prob, o_binary):
     o_binary = o_binary.flatten()
     
     if util.strtobool(os.environ['pyanen_skip_nan']):
-        mask = np.isnan(f_prob) or np.isnan(o_binary)
+        mask = np.isnan(f_prob) | np.isnan(o_binary)
         f_prob = f_prob[~mask]
         o_binary = o_binary[~mask]
     

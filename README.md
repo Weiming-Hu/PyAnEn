@@ -11,3 +11,18 @@ This is the Python interface and tools for [Parallel Analog Ensemble](https://we
 pip install git+https://github.com/Weiming-Hu/PyAnEn.git
 ```
 
+## Look-Up Table
+
+| **Metric**               | **Method Name**     | **Operate Along Axis** | **Support Bootstraping** |
+|--------------------------|---------------------|------------------------|--------------------------|
+| CRPS                     | crps                | Yes                    | Yes                      |
+| Bias                     | error               | Yes                    | Yes                      |
+| Spread                   | spread              | Yes                    | Yes                      |
+| RMSE                     | sq_error            | Yes                    | Yes                      |
+| MAE                      | ab_error            | Yes                    | Yes                      |
+| Brier Score              | brier               | Yes                    | Yes                      |
+| Spread Skill Correlation | binned_spread_skill | Yes                    | Yes                      |
+| Rank Histogram           | rank_hist           | Yes                    | No                       |
+| Sharpness                | sharpness           | Yes                    | No                       |
+| Reliability Diagram      | reliability         | No                     | No                       |
+| ROC Curve                | roc                 | No                     | No                       |

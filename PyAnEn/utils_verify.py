@@ -28,12 +28,6 @@ from scipy.stats import rankdata
 from sklearn.neighbors import KernelDensity
 
 
-def rankdata_wrapper(x, pbar=None):
-    if pbar is not None:
-        pbar.update(1)
-    return rankdata(x, method='min')
-
-
 def rank_histogram(f, o, ensemble_axis):
     # Reference:
     # https://github.com/oliverangelil/rankhistogram/blob/master/ranky.py
@@ -52,10 +46,7 @@ def rank_histogram(f, o, ensemble_axis):
         np.moveaxis(f, ensemble_axis, 0)))
     
     # Calculate ranks for ensemble members
-    with tqdm(total=np.prod(np.delete(c.shape, 0)),
-              disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
-              leave=util.strtobool(os.environ['pyanen_tqdm_leave'])) as pbar:
-        ranks = np.apply_along_axis(rankdata_wrapper, 0, c, pbar=pbar)
+    ranks = rankdata(c, method='min', axis=0)
     
     # Retrieves observation ranks
     obs_ranks = ranks[0]

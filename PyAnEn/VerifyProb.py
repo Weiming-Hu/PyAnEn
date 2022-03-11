@@ -82,7 +82,7 @@ class VerifyProb(Verify):
             return np.max(ens, axis=-1) - np.min(ens, axis=-1)
     
     def _brier(self, over, below):
-        brier = self.cdf(over=over, below=below) - binarize_obs(self.o, over=over, below=below)
+        brier = self._cdf(over=over, below=below) - binarize_obs(self.o, over=over, below=below)
         return brier ** 2
     
     def _binned_spread_skill(self, nbins=15):
@@ -121,7 +121,7 @@ class VerifyProb(Verify):
         assert isinstance(below, tuple) or isinstance(below, list)
         assert len(over) == 2 or len(below) == 2
         
-        f_prob = self.cdf(over=over[0], below=below[0])
+        f_prob = self._cdf(over=over[0], below=below[0])
         o_binary = binarize_obs(self.o, over=over[0], below=below[0])
         
         return iou_prob(f_prob, o_binary, axis=self.avg_axis, over=over[1], below=below[1])

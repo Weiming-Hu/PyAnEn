@@ -26,6 +26,7 @@ Defaults = {
     'pyanen_use_tensorflow_math': False,
     'pyanen_skip_nan': False,
     'pyanen_split_crps_ensemble_along_0': False,
+    'pyanen_reliability_bin_strategy': 'uniform',
 }
 
 for k, v in Defaults.items():

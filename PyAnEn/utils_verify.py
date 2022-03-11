@@ -27,6 +27,7 @@ from functools import partial
 from scipy import stats, special
 from sklearn.neighbors import KernelDensity
 from tqdm.contrib.concurrent import process_map
+from sklearn.calibration import calibration_curve
 
 
 def rankdata(x):
@@ -187,37 +188,23 @@ def ens_to_prob(f, ensemble_aixs, over=None, below=None):
 def binarize_obs(o, over=None, below=None):
     assert (over is None) ^ (below is None), 'Must specify over or below'
     return o < below if over is None else o > over
-        
-        
-def calculate_reliability(f_prob, o_binary, nbins):
+
+
+def calculate_reliability(f_prob, o_binary, nbins, strategy=None):
+    
     assert f_prob.shape == o_binary.shape
+    
+    if strategy is None: strategy = os.environ['pyanen_reliability_bin_strategy']
     
     # Flatten
     f_prob = f_prob.flatten()
     o_binary = o_binary.flatten()
     
-    # Sort based on forecasted probability
-    index_sort = np.argsort(f_prob)
-    f_prob = f_prob[index_sort]
-    o_binary = o_binary[index_sort]
+    # Reliability diagram
+    prob_true, prob_pred = calibration_curve(
+        y_true=o_binary, y_pred=f_prob, n_bins=nbins, normalize=False, strategy=strategy)
     
-    # Combine and split arrays
-    assert nbins <= f_prob.shape[0], 'Too many bins ({}) and too few samples ({})'.format(nbins, f_prob.shape[0])
-    
-    if nbins * 10 > f_prob.shape[0]:
-        warnings.warn('{} samples and {} bins. Some bins have fewer than 10 samples.'.format(f_prob.shape[0], nbins))
-        
-    arr_split = np.array_split(np.stack([f_prob, o_binary], axis=1), nbins, 0)
-    
-    # Calculate average forecasted probability and the average observed frequency
-    if util.strtobool(os.environ['pyanen_skip_nan']):
-        rel = np.array([np.nanmean(i, axis=0) for i in arr_split])
-    else:
-        rel = np.array([np.mean(i, axis=0) for i in arr_split])
-        
-    forecasted, observed = rel[:, 0], rel[:, 1]
-    
-    return forecasted, observed
+    return prob_pred, prob_true
 
 
 def calculate_roc(f_prob, o_binary):

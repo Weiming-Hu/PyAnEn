@@ -268,9 +268,6 @@ def _binned_spread_skill_create_split(variance, ab_error, nbins, sample_axis):
     shape_to_keep = variance.shape[to_axis:]
     
     # Flatten the sample dimensions and the kept dimensions separately
-    variance = variance.reshape(-1, *shape_to_keep)
-    ab_error = ab_error.reshape(-1, *shape_to_keep)
-    
     variance = variance.reshape(-1, np.prod(shape_to_keep).astype(int))
     ab_error = ab_error.reshape(-1, np.prod(shape_to_keep).astype(int))
     

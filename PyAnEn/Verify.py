@@ -44,6 +44,8 @@ class Verify:
     def _reliability(self, nbins=15, over=None, below=None): raise NotImplementedError
     def _roc(self, over=None, below=None): raise NotImplementedError
     def _sharpness(self, over=None, below=None): raise NotImplementedError
+    def _iou_determ(self, over=None, below=None): raise NotImplementedError
+    def _iou_prob(self, over=None, below=None): raise NotImplementedError
         
     ##################
     # Metric Methods #
@@ -64,10 +66,6 @@ class Verify:
     def brier(self, over=None, below=None, save_name='brier'): return self._metric_workflow_2('_'.join([save_name, str(over), str(below)]), self._brier, over=over, below=below)
     
     def binned_spread_skill(self, nbins=15, save_name='ss'): return self._metric_workflow_3('_'.join([save_name, str(nbins)]), self._binned_spread_skill, self.post_binned_spread_skill, nbins=nbins)
-    
-    def _iou_determ(self, over=None, below=None): raise NotImplementedError
-    def _iou_prob(self, over=None, below=None): raise NotImplementedError
-    
 
     def rmse(self, save_name='sq_error'):
         return np.sqrt(self.sq_error(save_name=save_name))

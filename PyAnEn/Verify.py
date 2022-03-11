@@ -175,17 +175,17 @@ class Verify:
         # Check working directory
         self._validate_saving()
     
-    def _save_npy(self, name, arr):
+    def _save_npy(self, name, arr, allow_pickle=True):
         if self.working_directory:
             path = os.path.join(self.working_directory, name + '.npy')
-            np.save(path, arr)
+            np.save(path, arr, allow_pickle=allow_pickle)
         
-    def _load_npy(self, name):
+    def _load_npy(self, name, allow_pickle=True):
         if self.working_directory:
             path = os.path.join(self.working_directory, name + '.npy')
             
             if os.path.exists(path):
-                return np.load(path)
+                return np.load(path, allow_pickle=allow_pickle)
             
         return None
     

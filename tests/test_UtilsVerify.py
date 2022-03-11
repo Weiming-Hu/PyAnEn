@@ -1,8 +1,12 @@
+import os
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 from ranky import rankz
+from PyAnEn.utils_verify import ens_to_prob
 from PyAnEn.utils_verify import rank_histogram
+
 
 def test_RankHist():
     
@@ -24,3 +28,18 @@ def test_RankHist():
         mine = plt.hist(ranks.ravel(), bins=theirs[1])
 
         assert np.all(mine[0] == theirs[0]), 'Failed with ensemble axis {}'.format(ens_axis)
+
+
+def test_EnsToProb():
+    os.environ['pyanen_tqdm_disable'] = 'False'
+    
+    f = np.random.normal(10, 2, (3, 4, 10, 50))
+    
+    os.environ['pyanen_tqdm_workers'] = '1'
+    f_serial = ens_to_prob(f, 3, over=11)
+    
+    os.environ['pyanen_tqdm_workers'] = '2'
+    f_parallel = ens_to_prob(f, 3, over=11)
+    
+    assert np.all(f_serial == f_parallel)
+    

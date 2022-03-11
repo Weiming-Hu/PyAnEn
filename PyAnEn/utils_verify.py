@@ -23,6 +23,7 @@ import scipy.stats as st
 from distutils import util
 from tqdm.auto import tqdm
 from sklearn import metrics
+from functools import partial
 from scipy import stats, special
 from sklearn.neighbors import KernelDensity
 from tqdm.contrib.concurrent import process_map
@@ -73,7 +74,7 @@ def rank_histogram(f, o, ensemble_axis, parallelize_axis=-1):
     else:
         parallelize_axis = int(os.environ['pyanen_tqdm_map_axis'])
         chunksize = int(os.environ['pyanen_tqdm_chunksize'])
-        assert parallelize_axis < 0, 'parallelize_axis needs to be negative, counting from the end of dimensions'
+        assert parallelize_axis < 0, 'parallelize_axis needs to be negative, counting from the end of dimensions, excluding the ensemble axis'
         
         ranks = process_map(rankdata,
                             np.split(c, c.shape[parallelize_axis], parallelize_axis),
@@ -120,12 +121,39 @@ def ens_to_prob_kde(ens, over=None, below=None, bandwidth=None, kernel=None,
 
 def ens_to_prob(f, ensemble_aixs, over=None, below=None):
     assert (over is None) ^ (below is None), 'Must specify over or below'
-    with tqdm(total=np.prod(np.delete(f.shape, ensemble_aixs)),
-              disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
-              leave=util.strtobool(os.environ['pyanen_tqdm_leave'])) as pbar:
-        ret = np.apply_along_axis(ens_to_prob_kde, ensemble_aixs, f, over=over, below=below, pbar=pbar)
-    return ret
     
+    cores = int(os.environ['pyanen_tqdm_workers'])
+    
+    if cores == 1:
+        with tqdm(total=np.prod(np.delete(f.shape, ensemble_aixs)),
+                disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
+                leave=util.strtobool(os.environ['pyanen_tqdm_leave'])) as pbar:
+            
+            ret = np.apply_along_axis(ens_to_prob_kde, ensemble_aixs, f, over=over, below=below, pbar=pbar)
+            
+    else:
+        # Move axis
+        f = np.moveaxis(f, ensemble_aixs, 0)
+        
+        n_members = f.shape[0]
+        f_shape = f.shape[1:]
+        
+        f = f.reshape(n_members, -1)
+        
+        chunksize = int(os.environ['pyanen_tqdm_chunksize'])
+        parallelize_axis = int(os.environ['pyanen_tqdm_map_axis'])
+        assert parallelize_axis == -1, 'parallelize_axis needs to be -1 for the ens_to_prob operation'
+        
+        ret = process_map(partial(ens_to_prob_kde, over=over, below=below),
+                          np.split(f, f.shape[parallelize_axis], parallelize_axis),
+                          disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
+                          leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
+                          chunksize=chunksize, max_workers=cores)
+        
+        ret = np.array(ret).reshape(f_shape)
+            
+    return ret
+
 
 def binarize_obs(o, over=None, below=None):
     assert (over is None) ^ (below is None), 'Must specify over or below'

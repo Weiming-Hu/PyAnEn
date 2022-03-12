@@ -43,6 +43,8 @@ def test_EnsToProb_KDE():
     f_parallel = ens_to_prob(f, 3, over=11)
     
     assert np.all(f_serial == f_parallel)
+    assert f_serial.shape == (3, 4, 10)
+    assert f_parallel.shape == (3, 4, 10)
 
 
 def test_EnsToProb_Moments():
@@ -57,6 +59,9 @@ def test_EnsToProb_Moments():
     f_parallel = ens_to_prob(f, 3, over=11)
     
     assert np.all(f_serial == f_parallel)
+    assert f_serial.shape == (3, 4, 10)
+    assert f_parallel.shape == (3, 4, 10)
+    
     
 def test_DetermIOU():
     f = np.array([

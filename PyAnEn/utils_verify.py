@@ -18,7 +18,6 @@ import os
 import warnings
 
 import numpy as np
-import scipy.stats as st
 
 from distutils import util
 from tqdm.auto import tqdm
@@ -126,9 +125,9 @@ def ens_to_prob_moments(ens, over=None, below=None, pbar=None, axis=None):
         pbar.update(1)
     
     if over is None:
-        return np.count_nonzero(ens <= below, axis=axis) / len(ens) if axis is None else ens.shape[axis]
+        return np.count_nonzero(ens <= below, axis=axis) / (len(ens) if axis is None else ens.shape[axis])
     else:
-        return np.count_nonzero(ens >= over, axis=axis) / len(ens)  if axis is None else ens.shape[axis]
+        return np.count_nonzero(ens >= over, axis=axis) / (len(ens)  if axis is None else ens.shape[axis])
 
 
 def ens_to_prob(f, ensemble_aixs, over=None, below=None):
@@ -142,7 +141,7 @@ def ens_to_prob(f, ensemble_aixs, over=None, below=None):
                     disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
                     leave=util.strtobool(os.environ['pyanen_tqdm_leave'])) as pbar:
                 
-                ret = np.apply_along_axis(transfer_func, ensemble_aixs, f, over=over, below=below, pbar=pbar)
+                ret = np.apply_along_axis(ens_to_prob_kde, ensemble_aixs, f, over=over, below=below, pbar=pbar)
                 
         elif os.environ['pyanen_ens_to_prob_method'] == 'moments':
             ret = ens_to_prob_moments(f, over=over, below=below, axis=ensemble_aixs)
@@ -230,6 +229,7 @@ def calculate_roc(f_prob, o_binary):
 
 def boot_vec(pop, n_samples=None, repeats=None, confidence=None, pbar=None, skip_nan=False):
     # Reference: https://www.cawcr.gov.au/projects/verification/BootstrapCIs.html
+    assert len(pop.shape) == 1, 'pop must be a vector'
     
     if n_samples is None: n_samples = int(os.environ['pyanen_boot_samples'])
     if repeats is None: repeats = int(os.environ['pyanen_boot_repeats'])
@@ -243,9 +243,10 @@ def boot_vec(pop, n_samples=None, repeats=None, confidence=None, pbar=None, skip
     boot_samples_mean = np.array(boot_samples_mean)
     
     sample_mean = boot_samples_mean.mean()
-    sample_std = boot_samples_mean.std()
-
-    ci = st.t.interval(alpha=confidence, df=repeats-1, loc=sample_mean, scale=sample_std)
+    ci = np.quantile(boot_samples_mean, [1-confidence, confidence])
+    
+    # sample_std = boot_samples_mean.std()
+    # ci = st.t.interval(alpha=confidence, df=repeats-1, loc=sample_mean, scale=sample_std)
     
     if pbar is not None:
         pbar.update(1)
@@ -398,11 +399,14 @@ def _binned_spread_skill_agg_boot(arr_split, reconstruct_shape,
                     spreads.append(arr[idx, 0, dim_i].mean())
                     errors.append(arr[idx, 1, dim_i].mean())
             
-            spread_mean, spread_std = np.mean(spreads), np.std(spreads)
-            error_mean, error_std = np.mean(errors), np.std(errors)
+            spread_mean, error_mean  = np.mean(spreads), np.mean(errors)
+            spread_ci = np.quantile(spreads, [1-confidence, confidence])
+            error_ci = np.quantile(errors, [1-confidence, confidence])
             
-            spread_ci = st.t.interval(alpha=confidence, df=repeats-1, loc=spread_mean, scale=spread_std)
-            error_ci = st.t.interval(alpha=confidence, df=repeats-1, loc=error_mean, scale=error_std)
+            # spread_mean, spread_std = np.mean(spreads), np.std(spreads)
+            # error_mean, error_std = np.mean(errors), np.std(errors)
+            # spread_ci = st.t.interval(alpha=confidence, df=repeats-1, loc=spread_mean, scale=spread_std)
+            # error_ci = st.t.interval(alpha=confidence, df=repeats-1, loc=error_mean, scale=error_std)
             
             spreads_ci.append([spread_ci[0], spread_mean, spread_ci[1]])
             errors_ci.append([error_ci[0], error_mean, error_ci[1]])

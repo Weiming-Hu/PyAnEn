@@ -8,6 +8,7 @@
 - Added str methods
 - Added various setters and getters
 - Added parallelization to rank histogram
+- Switched saving/loading from numpy to pickle
 
 # PyAnEn 0.2.1
 

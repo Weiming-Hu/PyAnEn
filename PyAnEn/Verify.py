@@ -13,6 +13,7 @@
 
 import os
 import shutil
+import pickle
 
 import numpy as np
 
@@ -195,26 +196,28 @@ class Verify:
         # Check working directory
         self._validate_saving()
     
-    def _save_npy(self, name, arr, allow_pickle=True):
+    def _save(self, name, arr):
         if self.working_directory:
-            path = os.path.join(self.working_directory, name + '.npy')
-            np.save(path, arr, allow_pickle=allow_pickle)
+            path = os.path.join(self.working_directory, name + '.pkl')
+            with open(path, 'wb') as f:
+                pickle.dump(arr, f)
         
-    def _load_npy(self, name, allow_pickle=True):
+    def _load(self, name):
         if self.working_directory:
-            path = os.path.join(self.working_directory, name + '.npy')
+            path = os.path.join(self.working_directory, name + '.pkl')
             
             if os.path.exists(path):
-                return np.load(path, allow_pickle=allow_pickle)
+                with open(path, 'rb') as f:
+                    return pickle.load(path)
             
         return None
     
     def _metric_workflow_1(self, save_name, func, **kwargs):
-        metric = self._load_npy(save_name)
+        metric = self._load(save_name)
         
         if metric is None:
             metric = func(**kwargs)
-            self._save_npy(save_name, metric)
+            self._save(save_name, metric)
             
         return metric
     

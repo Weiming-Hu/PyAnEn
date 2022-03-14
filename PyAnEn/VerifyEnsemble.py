@@ -28,7 +28,7 @@ from .utils_verify import ens_to_prob
 from .utils_verify import binarize_obs
 from .utils_verify import calculate_roc
 from .utils_verify import rank_histogram
-from .utils_verify import calculate_reliability
+from .utils_verify import _reliability_split
 from .utils_verify import _binned_spread_skill_create_split
 
 
@@ -115,7 +115,7 @@ class VerifyEnsemble(Verify):
         f_prob = self._ens_to_prob(over=over, below=below)
         o_binary = binarize_obs(self.o, over=over, below=below)
         
-        return calculate_reliability(f_prob, o_binary, nbins)
+        return _reliability_split(f_prob, o_binary, nbins)
     
     def _roc(self, over=None, below=None):
         
@@ -141,6 +141,9 @@ class VerifyEnsemble(Verify):
         o_binary = binarize_obs(self.o, over=over[0], below=below[0])
         
         return iou_prob(f_prob, o_binary, axis=self.avg_axis, over=over[1], below=below[1])
+    
+    def _cdf(self, over=None, below=None):
+        return ens_to_prob(self.f, ensemble_aixs=self.ensemble_axis, over=over, below=below)
     
     ###### Other Methods ######
     

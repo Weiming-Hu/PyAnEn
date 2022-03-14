@@ -28,5 +28,6 @@ setuptools.setup(
         'numpy',
         'scipy',
         'sklearn',
+        'pandas',
     ],
 )

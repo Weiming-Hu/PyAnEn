@@ -18,6 +18,7 @@ import os
 import warnings
 
 import numpy as np
+import pandas as pd
 
 from distutils import util
 from tqdm.auto import tqdm
@@ -189,23 +190,6 @@ def binarize_obs(o, over=None, below=None):
     return o < below if over is None else o > over
 
 
-def calculate_reliability(f_prob, o_binary, nbins, strategy=None):
-    
-    assert f_prob.shape == o_binary.shape
-    
-    if strategy is None: strategy = os.environ['pyanen_reliability_bin_strategy']
-    
-    # Flatten
-    f_prob = f_prob.flatten()
-    o_binary = o_binary.flatten()
-    
-    # Reliability diagram
-    prob_true, prob_pred = calibration_curve(
-        y_true=o_binary, y_prob=f_prob, n_bins=nbins, normalize=False, strategy=strategy)
-    
-    return prob_pred, prob_true
-
-
 def calculate_roc(f_prob, o_binary):
     # Flatten
     f_prob = f_prob.flatten()
@@ -289,6 +273,110 @@ def boot_arr(metric, sample_axis, n_samples=None, repeats=None, confidence=None)
     
     return intervals
 
+
+#####################################
+# Functions for reliability diagram #
+#####################################
+#
+# Code referenced from sklearn
+# https://github.com/scikit-learn/scikit-learn/blob/37ac6788c9504ee409b75e5e24ff7d86c90c2ffb/sklearn/calibration.py#L869
+#
+
+def _reliability_split(f_prob, o_binary, nbins):
+    
+    assert f_prob.shape == o_binary.shape
+    
+    # Flatten
+    f_prob = f_prob.flatten()
+    o_binary = o_binary.flatten()
+    
+    # Split array for reliability diagram
+    bins = np.linspace(0.0, 1.0 + 1e-8, nbins + 1)
+    binids = np.digitize(f_prob, bins) - 1
+    
+    return binids, f_prob, o_binary, bins
+
+def _reliability_agg_no_boot(binids, y_prob, y_true, bins):
+
+    bin_sums = np.bincount(binids, weights=y_prob, minlength=len(bins))
+    bin_true = np.bincount(binids, weights=y_true, minlength=len(bins))
+    bin_total = np.bincount(binids, minlength=len(bins))
+    
+    nonzero = bin_total != 0
+    
+    prob_true = bin_true[nonzero] / bin_total[nonzero]
+    prob_pred = bin_sums[nonzero] / bin_total[nonzero]
+    
+    counts = pd.value_counts(binids)
+    counts.name = 'Samples in each bin'
+    
+    return prob_pred, prob_true, counts
+
+def _reliability_agg_boot(binids, y_prob, y_true, bins,
+                          n_samples=None, repeats=None, confidence=None, skip_nan=None):
+    
+    if n_samples is None: n_samples = int(os.environ['pyanen_boot_samples'])
+    if repeats is None: repeats = int(os.environ['pyanen_boot_repeats'])
+    if confidence is None: confidence = float(os.environ['pyanen_boot_confidence'])
+    if skip_nan is None: skip_nan = util.strtobool(os.environ['pyanen_skip_nan'])
+    
+    probs_pred = []
+    probs_true = []
+    
+    for binid in np.unique(binids):
+        indices = np.where(binids == binid)[0]
+
+        if len(indices) > 0:
+            sample_probs = []
+            sample_trues = []
+
+            for _ in range(repeats):
+                random_indices = np.random.choice(indices, size=n_samples, replace=True)
+
+                if skip_nan:
+                    sample_probs.append(np.nanmean(y_prob[random_indices]))
+                    sample_trues.append(np.nanmean(y_true[random_indices]))
+                else:
+                    sample_probs.append(np.mean(y_prob[random_indices]))
+                    sample_trues.append(np.mean(y_true[random_indices]))
+
+            ci = np.quantile(sample_probs, [1-confidence, confidence])
+            probs_pred.append([ci[0], np.mean(sample_probs), ci[1]])
+
+            ci = np.quantile(sample_trues, [1-confidence, confidence])
+            probs_true.append([ci[0], np.mean(sample_trues), ci[1]])
+
+        else:
+            probs_pred.append([])
+            probs_true.append([])
+
+    bin_total = np.bincount(binids, minlength=len(bins))
+    nonzero = bin_total != 0
+    
+    probs_pred = [probs_pred[i] for i in range(len(bins)) if nonzero[i]]
+    probs_true = [probs_true[i] for i in range(len(bins)) if nonzero[i]]
+
+    counts = pd.value_counts(binids)
+    counts.name = 'Samples in each bin'
+
+    return np.array(probs_pred), np.array(probs_true), counts
+
+
+def reliability_diagram(f_prob, o_binary, nbins, 
+                        boot_samples=None, repeats=None,
+                        confidence=None, skip_nan=None):
+    
+    binids, f_prob, o_binary, bins = _reliability_split(
+        f_prob=f_prob, o_binary=o_binary, nbins=nbins)
+    
+    if boot_samples is None:
+        return _reliability_agg_no_boot(
+            binids, f_prob, o_binary, bins)
+    else:
+        return _reliability_agg_boot(
+            binids, f_prob, o_binary, bins,
+            boot_samples, repeats, confidence, skip_nan)
+    
 
 ##########################################
 # Functions for Spread Skill Correlation #
@@ -430,9 +518,6 @@ def _binned_spread_skill_agg_boot(arr_split, reconstruct_shape,
 def binned_spread_skill(
     variance, ab_error, nbins, sample_axis,
     boot_samples=None, repeats=None, confidence=None, skip_nan=None):
-    
-    if repeats is None: repeats = int(os.environ['pyanen_boot_repeats'])
-    if confidence is None: confidence = float(os.environ['pyanen_boot_confidence'])
     
     arr_split, shape_to_keep = _binned_spread_skill_create_split(
         variance=variance, ab_error=ab_error,

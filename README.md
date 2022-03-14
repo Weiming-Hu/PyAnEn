@@ -28,7 +28,7 @@ pip install git+https://github.com/Weiming-Hu/PyAnEn.git
 | IOU (Probability)        | iou_prob            | Yes                    | No                       | No                 |
 | Rank Histogram           | rank_hist           | Yes                    | No                       | Yes                |
 | Sharpness                | sharpness           | Yes                    | No                       | Yes for ensembles  |
-| Reliability Diagram      | reliability         | No                     | No                       | Yes for ensembles  |
+| Reliability Diagram      | reliability         | No                     | Yes                      | Yes for ensembles  |
 | ROC Curve                | roc                 | No                     | No                       | Yes for ensembles  |
 
 Some operations are not parallelized currently because these operations are already blazingly fast. However, parallelization can be done if needed.

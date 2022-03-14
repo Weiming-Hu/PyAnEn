@@ -18,6 +18,8 @@ import numpy as np
 
 from distutils import util
 from .utils_verify import boot_arr
+from .utils_verify import _reliability_agg_boot
+from .utils_verify import _reliability_agg_no_boot
 from .utils_verify import _binned_spread_skill_agg_boot
 from .utils_verify import _binned_spread_skill_agg_no_boot
 
@@ -46,17 +48,18 @@ class Verify:
     def _sharpness(self, over=None, below=None): raise NotImplementedError
     def _iou_determ(self, over=None, below=None): raise NotImplementedError
     def _iou_prob(self, over=None, below=None): raise NotImplementedError
+    def _cdf(self, over=None, below=None): raise NotImplementedError
         
     ##################
     # Metric Methods #
     ##################
     
     def rank_hist(self, save_name='rank'): return self._metric_workflow_1(save_name, self._rank_hist)
-    def reliability(self, nbins=15, over=None, below=None, save_name='rel'): return self._metric_workflow_1('_'.join([save_name, str(nbins), str(over), str(below)]), self._reliability, nbins=nbins, over=over, below=below)
     def roc(self, over=None, below=None, save_name='roc'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._roc, over=over, below=below)
     def sharpness(self, over=None, below=None, save_name='sharpness'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._sharpness, over=over, below=below)
     def iou_determ(self, over=None, below=None, save_name='iou_determ'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._iou_determ, over=over, below=below)
     def iou_prob(self, over=None, below=None, save_name='iou_prob'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._iou_prob, over=over, below=below)
+    def cdf(self, over=None, below=None, save_name='cdf'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._cdf, over=over, below=below)
     
     def crps(self, save_name='crps'): return self._metric_workflow_2(save_name, self._crps)
     def error(self, save_name='error'): return self._metric_workflow_2(save_name, self._error)
@@ -65,6 +68,7 @@ class Verify:
     def ab_error(self, save_name='ab_error'): return self._metric_workflow_2(save_name, self._ab_error)
     def brier(self, over=None, below=None, save_name='brier'): return self._metric_workflow_2('_'.join([save_name, str(over), str(below)]), self._brier, over=over, below=below)
     
+    def reliability(self, nbins=15, over=None, below=None, save_name='rel'): return self._metric_workflow_3('_'.join([save_name, str(nbins), str(over), str(below)]), self._reliability, self.post_reliability, nbins=nbins, over=over, below=below)
     def binned_spread_skill(self, nbins=15, save_name='ss'): return self._metric_workflow_3('_'.join([save_name, str(nbins)]), self._binned_spread_skill, self.post_binned_spread_skill, nbins=nbins)
 
     def rmse(self, save_name='sq_error'):
@@ -107,6 +111,17 @@ class Verify:
         else:
             # Use bootstraping to create CI
             return _binned_spread_skill_agg_boot(*metric, n_samples=self.boot_samples)
+        
+    def post_reliability(self, metric):
+        # Deals with averaging or bootstraping for reliability diagram
+        
+        if self.boot_samples is None:
+            # Only average over bins
+            return _reliability_agg_no_boot(*metric)
+        
+        else:
+            # Use bootstraping to create CI
+            return _reliability_agg_boot(*metric, n_samples=self.boot_samples)
     
     ########################
     # Other Public Methods #

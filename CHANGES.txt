@@ -1,4 +1,4 @@
-# PyAnEn 0.3.6
+# PyAnEn 0.3.8
 
 - Added verification classes for deterministic, probabilistic, and ensemble forecasts
 - Added progress bar from tqdm

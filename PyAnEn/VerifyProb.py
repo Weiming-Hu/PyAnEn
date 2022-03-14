@@ -24,7 +24,7 @@ from .utils_verify import iou_determ
 from .utils_verify import binarize_obs
 from .utils_verify import calculate_roc
 from .utils_verify import rank_histogram
-from .utils_verify import calculate_reliability
+from .utils_verify import _reliability_split
 from .utils_verify import _binned_spread_skill_create_split
 
 
@@ -99,7 +99,7 @@ class VerifyProb(Verify):
         f_prob = self._cdf(over=over, below=below)
         o_binary = binarize_obs(self.o, over=over, below=below)
         
-        return calculate_reliability(f_prob, o_binary, nbins)
+        return _reliability_split(f_prob, o_binary, nbins)
     
     def _roc(self, over=None, below=None):
         

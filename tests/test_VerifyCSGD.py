@@ -1,5 +1,6 @@
 # Set environment variables
 import os
+from cffi import VerificationError
 
 os.environ['pyanen_boot_repeats'] = '30'
 os.environ['pyanen_lbeta_tensorflow'] = 'True'
@@ -50,6 +51,7 @@ def test_prob_to_ens():
     r_shape.insert(-1, 15)
     
     assert l_shape == r_shape, '{} == {}'.format(l_shape, r_shape)
+
 
 def test_avg_axis():
     
@@ -105,4 +107,30 @@ def test_avg_axis():
              {'mu': f['mu'][:, :, :, [3]], 'sigma': f['sigma'][:, :, :, [3]], 'unshifted_mu': f['unshifted_mu'][:, :, :, [3]], 'shift': f['shift'][:, :, :, [3]]},
              {'mu': f['mu'][:, :, :, 3], 'sigma': f['sigma'][:, :, :, 3], 'unshifted_mu': f['unshifted_mu'][:, :, :, 3], 'shift': f['shift'][:, :, :, 3]}],
             [o, o[:, :, :, [3]], o[:, :, :, 3]], (0, 1, 2), 3, 17, 'first dimension')
+
+
+def test_reliability():
+    
+    init_shape = [5, 6, 7, 3]
+    o = np.full(init_shape, 10)
+    f = {
+        'mu': np.random.rand(*init_shape) * 10 + 50,
+        'unshifted_mu': np.random.rand(*init_shape) * 5 + 10,
+        'shift': np.random.rand(*init_shape) * 3,
+        'sigma': np.random.randint(1, 2, size=init_shape) * 10 + 50,
+    }
+    
+    verifier_no_boot = VerifyProbCSGD(f=f, o=o)
+    verifier_boot = VerifyProbCSGD(f=f, o=o, boot_samples=100)
+    
+    y_pred1, y_true1, counts1 = verifier_no_boot.reliability(over=50)
+    y_pred2, y_true2, counts2 = verifier_boot.reliability(over=50)
+    
+    assert len(y_pred1.shape) == len(y_true1.shape) == 1
+    assert len(y_pred2.shape) == len(y_pred2.shape) == 2
+    assert np.all(y_pred2[:, 0] <= y_pred1)
+    assert np.all(y_pred1 <= y_pred2[:, 2])
+    assert np.all(y_true2[:, 0] <= y_true1)
+    assert np.all(y_true1 <= y_true2[:, 2])
+    assert np.all(counts1 == counts2)
     

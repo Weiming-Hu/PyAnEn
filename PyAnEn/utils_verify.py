@@ -607,11 +607,11 @@ def crps_truncated_gaussian(y, mu=0, scale=1, l=0):
     #
     # Assume u = +inf, U = 0 and L = 0
 
-    y -= mu
-    l -= mu
+    y = y - mu
+    l = l - mu
     
-    l /= scale
-    y /= scale
+    l = l / scale
+    y = y / scale
     
     z = np.copy(y)
     mask = z < l

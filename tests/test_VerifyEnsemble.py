@@ -90,13 +90,13 @@ def test_spread_skill():
 
 
 def test_brier():
-    verify = VerifyEnsemble(f, o, working_directory='./tmp')
+    verify = VerifyEnsemble(f, o, working_directory=os.path.expanduser('~/github/PyAnEn/tmp'))
     br = verify.brier(over=16.5)
-    assert os.path.exists('./tmp/brier_16.5_None.npy')
-    assert os.path.exists('./tmp/ens_to_prob_16.5_None.npy')
+    assert os.path.exists(os.path.expanduser('~/github/PyAnEn/tmp/brier_16.5_None.pkl'))
+    assert os.path.exists(os.path.expanduser('./tmp/ens_to_prob_16.5_None.pkl'))
     br = verify.brier(over=16.5)
-    os.remove('./tmp/ens_to_prob_16.5_None.npy')
-    os.remove('./tmp/brier_16.5_None.npy')
+    os.remove('./tmp/ens_to_prob_16.5_None.pkl')
+    os.remove('./tmp/brier_16.5_None.pkl')
     os.rmdir('./tmp')
 
 

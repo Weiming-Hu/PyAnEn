@@ -112,19 +112,25 @@ def test_avg_axis():
 def test_reliability():
     
     init_shape = [5, 6, 7, 3]
-    o = np.full(init_shape, 10)
+    o = np.random.rand(*init_shape)
     f = {
-        'mu': np.random.rand(*init_shape) * 10 + 50,
-        'unshifted_mu': np.random.rand(*init_shape) * 5 + 10,
-        'shift': np.random.rand(*init_shape) * 3,
-        'sigma': np.random.randint(1, 2, size=init_shape) * 10 + 50,
+        'mu': np.random.rand(*init_shape),
+        'unshifted_mu': np.random.rand(*init_shape),
+        'shift': -np.random.rand(*init_shape),
+        'sigma': np.random.rand(*init_shape) * 10 + 0.01,
     }
     
     verifier_no_boot = VerifyProbCSGD(f=f, o=o)
-    verifier_boot = VerifyProbCSGD(f=f, o=o, boot_samples=100)
+    verifier_boot = VerifyProbCSGD(f=f, o=o, boot_samples=10000)
     
-    y_pred1, y_true1, counts1 = verifier_no_boot.reliability(over=50)
-    y_pred2, y_true2, counts2 = verifier_boot.reliability(over=50)
+    y_pred1, y_true1, counts1 = verifier_no_boot.reliability(over=1)
+    y_pred2, y_true2, counts2 = verifier_boot.reliability(over=1)
+    
+    mask = np.isfinite(y_pred1)
+    y_pred1, y_pred2 = y_pred1[mask], y_pred2[mask, :]
+    
+    mask = np.isfinite(y_true1)
+    y_true1, y_true2 = y_true1[mask], y_true2[mask, :]
     
     assert len(y_pred1.shape) == len(y_true1.shape) == 1
     assert len(y_pred2.shape) == len(y_pred2.shape) == 2

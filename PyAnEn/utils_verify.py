@@ -310,7 +310,7 @@ def _reliability_agg_no_boot(binids, y_prob, y_true, bins):
     counts = pd.value_counts(binids)
     counts.name = 'Samples in each bin'
     
-    return prob_pred, prob_true, counts
+    return prob_pred, prob_true, counts.sort_index()
 
 def _reliability_agg_boot(binids, y_prob, y_true, bins,
                           n_samples=None, repeats=None, confidence=None, skip_nan=None):
@@ -323,7 +323,7 @@ def _reliability_agg_boot(binids, y_prob, y_true, bins,
     probs_pred = []
     probs_true = []
     
-    for binid in np.unique(binids):
+    for binid in range(len(bins)):
         indices = np.where(binids == binid)[0]
 
         if len(indices) > 0:
@@ -359,7 +359,7 @@ def _reliability_agg_boot(binids, y_prob, y_true, bins,
     counts = pd.value_counts(binids)
     counts.name = 'Samples in each bin'
 
-    return np.array(probs_pred), np.array(probs_true), counts
+    return np.array(probs_pred), np.array(probs_true), counts.sort_index()
 
 
 def reliability_diagram(f_prob, o_binary, nbins, 
@@ -592,6 +592,47 @@ def crps_csgd(mu, sigma, shift, obs, reduce_sum=True):
             return np.mean(CRPS)
     else:
         return CRPS
+
+
+def crps_truncated_gaussian(y, mu=0, scale=1, l=0):
+    # Reference:
+    # 1. https://cran.microsoft.com/snapshot/2017-09-17/web/packages/scoringRules/vignettes/crpsformulas.html#GenNormal
+    # 2. https://github.com/cran/scoringRules/blob/f7b7df5f1ba32247be92e98095afff2d8fee9eb6/R/scores_norm.R#L190
+    #
+    # Assume u = +inf, U = 0 and L = 0
+
+    y -= mu
+    l -= mu
+    
+    l /= scale
+    y /= scale
+    
+    z = np.copy(y)
+    mask = z < l
+    z[mask] = l[mask]
+    
+    dist = stats.norm()
+    f_z = dist.pdf(z)
+    F_z = dist.cdf(z)
+    F_l = dist.cdf(l)
+    F_u = 1
+    
+    F_usqrt2 = 1
+    F_lsqrt2 = dist.cdf(l * np.sqrt(2))
+    
+    # Calculate intermediate terms
+    frac1 = 1 / (F_u - F_l)
+    
+    # Calculate separate terms
+    term1 = np.abs(y - z)
+    term2 = frac1 * z * (2 * F_z - F_u - F_l)
+    term3 = frac1 * 2 * f_z
+    term4 = frac1 ** 2 * 1 / np.sqrt(np.pi) * (F_usqrt2 - F_lsqrt2)
+    
+    # Calculate final metric
+    crps = term1 + term2 + term3 - term4
+    
+    return crps * scale
 
 
 #####################

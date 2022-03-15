@@ -17,6 +17,7 @@
 import properscoring as ps
 
 from .VerifyProb import VerifyProb
+from .utils_verify import crps_truncated_gaussian
 from .utils_dist import sample_dist_gaussian, cdf_gaussian
 
 
@@ -50,15 +51,14 @@ class VerifyProbGaussian(VerifyProb):
     
     def _prob_to_ens(self):
         assert self.n_sample_members is not None, 'Set the number of members to sample, e.g., obj.n_sample_members = 15'
-        return sample_dist_gaussian(self.f['mu'], self.f['sigma'], self.n_sample_members, self.move_sampled_ens_axis)
+        return sample_dist_gaussian(self.f['mu'], self.f['sigma'], self.n_sample_members, self.move_sampled_ens_axis, self.truncated)
     
     def _cdf(self, over=None, below=None):
         return cdf_gaussian(self.f['mu'], self.f['sigma'], over, below, self.truncated)
     
     def _crps(self):
         if self.truncated:
-            # TODO: Implement the CRPS with truncated gaussian
-            raise NotImplementedError
+            return crps_truncated_gaussian(self.o, mu=self.f['mu'], scale=self.f['sigma'], l=0)
         else:
             return ps.crps_gaussian(self.o, mu=self.f['mu'], sig=self.f['sigma'])
     

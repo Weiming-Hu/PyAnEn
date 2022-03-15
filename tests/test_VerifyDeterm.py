@@ -87,12 +87,12 @@ def test_sq_error():
         assert np.all(l_hand_boot[0] < l_hand_no_boot) and np.all(l_hand_boot[2] > l_hand_no_boot)
 
 def test_ab_error():
-    verify = VerifyDeterm(f, o, working_directory='./tmp')
+    verify = VerifyDeterm(f, o, working_directory=os.path.expanduser('~/github/PyAnEn/tmp'))
     assert verify.ab_error() == np.abs(f - o).mean()
-    assert os.path.exists('./tmp/ab_error.npy')
+    assert os.path.exists(os.path.expanduser('~/github/PyAnEn/tmp/ab_error.pkl'))
     assert verify.ab_error() == np.abs(f - o).mean()
-    os.remove('./tmp/ab_error.npy')
-    os.rmdir('./tmp')
+    os.remove(os.path.expanduser('~/github/PyAnEn/tmp/ab_error.pkl'))
+    os.rmdir(os.path.expanduser('~/github/PyAnEn/tmp'))
 
 
 def test_avg_axis():

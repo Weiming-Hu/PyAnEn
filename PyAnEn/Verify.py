@@ -208,7 +208,7 @@ class Verify:
             
             if os.path.exists(path):
                 with open(path, 'rb') as f:
-                    return pickle.load(path)
+                    return pickle.load(f)
             
         return None
     

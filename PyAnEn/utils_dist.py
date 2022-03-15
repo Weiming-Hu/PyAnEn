@@ -14,7 +14,6 @@
 # Utility functions for distributions
 #
 import os
-import dill as pickle
 
 import numpy as np
 
@@ -39,7 +38,7 @@ def _parallel_process(wrapper, iterable):
     ens = process_map(wrapper, iterable,
                       disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
                       leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
-                      chunksize=chunksize, max_workers=cores)
+                      chunksize=chunksize, max_workers=cores, desc='Process distribution')
     
     return np.concatenate(ens, axis=parallelize_axis)
 

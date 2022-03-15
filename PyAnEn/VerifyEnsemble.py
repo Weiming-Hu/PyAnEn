@@ -78,7 +78,8 @@ class VerifyEnsemble(Verify):
                     for i in tqdm(
                         range(self.o.shape[0]),
                         disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
-                        leave=util.strtobool(os.environ['pyanen_tqdm_leave']))]
+                        leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
+                        desc='Ensemble CRPS (along first axis)')]
             
             return np.stack(crps, axis=0)
         

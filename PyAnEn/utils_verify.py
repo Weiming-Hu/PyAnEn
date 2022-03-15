@@ -81,7 +81,8 @@ def rank_histogram(f, o, ensemble_axis):
                             np.split(c, c.shape[parallelize_axis], parallelize_axis),
                             disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
                             leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
-                            chunksize=chunksize, max_workers=cores)
+                            chunksize=chunksize, max_workers=cores,
+                            desc='Rank histogram')
         
         obs_ranks = np.concatenate(ranks, axis=parallelize_axis)
     
@@ -140,7 +141,8 @@ def ens_to_prob(f, ensemble_aixs, over=None, below=None):
         if os.environ['pyanen_ens_to_prob_method'] == 'kde':
             with tqdm(total=np.prod(np.delete(f.shape, ensemble_aixs)),
                     disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
-                    leave=util.strtobool(os.environ['pyanen_tqdm_leave'])) as pbar:
+                    leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
+                    desc='KDE') as pbar:
                 
                 ret = np.apply_along_axis(ens_to_prob_kde, ensemble_aixs, f, over=over, below=below, pbar=pbar)
                 
@@ -178,7 +180,8 @@ def ens_to_prob(f, ensemble_aixs, over=None, below=None):
                           np.split(f, f.shape[parallelize_axis], parallelize_axis),
                           disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
                           leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
-                          chunksize=chunksize, max_workers=cores)
+                          chunksize=chunksize, max_workers=cores,
+                          desc='Ensemble to probability')
         
         ret = np.array(ret).reshape(f_shape)
             
@@ -264,7 +267,8 @@ def boot_arr(metric, sample_axis, n_samples=None, repeats=None, confidence=None)
     
     with tqdm(total=metric.shape[1],
               disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
-              leave=util.strtobool(os.environ['pyanen_tqdm_leave'])) as pbar:
+              leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
+              desc='Bootstraping') as pbar:
         intervals = np.apply_along_axis(boot_vec, 0, metric, n_samples=n_samples,
                                         repeats=repeats, confidence=confidence, pbar=pbar,
                                         skip_nan=util.strtobool(os.environ['pyanen_skip_nan']))
@@ -433,7 +437,8 @@ def _binned_spread_skill_agg_no_boot(arr_split, reconstruct_shape, skip_nan=None
     
     for arr in tqdm(arr_split,
                     disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
-                    leave=util.strtobool(os.environ['pyanen_tqdm_leave'])):
+                    leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
+                    desc='Spread skill aggregation'):
         assert len(arr.shape) == 3 and arr.shape[1] == 2
         
         if skip_nan:
@@ -469,7 +474,8 @@ def _binned_spread_skill_agg_boot(arr_split, reconstruct_shape,
     
     for arr in tqdm(arr_split,
                     disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
-                    leave=util.strtobool(os.environ['pyanen_tqdm_leave'])):
+                    leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
+                    desc='Spread skill bootstraping'):
         assert len(arr.shape) == 3 and arr.shape[1] == 2
         pop_size = arr.shape[0]
         

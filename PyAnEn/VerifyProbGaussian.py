@@ -68,5 +68,5 @@ class VerifyProbGaussian(VerifyProb):
     
     def __str__(self):
         msg = super().__str__()
-        msg += '\nTruncated distribution (truncated): {}'.format(', '.join(self.truncated))
+        msg += '\nTruncated: {}'.format(self.truncated)
         return msg

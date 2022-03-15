@@ -50,7 +50,7 @@ def rankdata(x):
     return obs_ranks
 
 
-def rank_histogram(f, o, ensemble_axis, parallelize_axis=-1):
+def rank_histogram(f, o, ensemble_axis):
     # Reference:
     # https://github.com/oliverangelil/rankhistogram/blob/master/ranky.py
     

@@ -31,12 +31,13 @@ from .utils_verify import _binned_spread_skill_create_split
 class VerifyProb(Verify):
     
     def __init__(self, f, o, move_sampled_ens_axis=-1, avg_axis=None,
-                 n_sample_members=None, boot_samples=None,
-                 working_directory=None, start_from_scratch=True):
+                 n_sample_members=None, clip_member_to_zero=None,
+                 boot_samples=None, working_directory=None, start_from_scratch=True):
         
         self.f = f
         self.o = o
         self.n_sample_members = n_sample_members
+        self.clip_member_to_zero = self.clip_member_to_zero
         self.move_sampled_ens_axis = move_sampled_ens_axis
         
         super().__init__(avg_axis, boot_samples, working_directory, start_from_scratch)
@@ -54,6 +55,11 @@ class VerifyProb(Verify):
     def set_ensemble_members(self, n):
         self.n_sample_members = n
         self._validate_sample_members()
+        return self
+    
+    def set_member_clip(self, v):
+        self.clip_member_to_zero = v
+        self._validate_clip_member_to_zero()
         return self
     
     ###################
@@ -131,6 +137,10 @@ class VerifyProb(Verify):
     def _validate_sample_members(self):
         if self.n_sample_members is not None:
             assert isinstance(self.n_sample_members, int)
+            
+    def _validate_clip_member_to_zero(self):
+        if self.clip_member_to_zero is not None:
+            assert isinstance(self.clip_member_to_zero, float)
     
     def _validate(self):
         super()._validate()

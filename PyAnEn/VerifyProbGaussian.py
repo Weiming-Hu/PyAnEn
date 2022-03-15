@@ -51,7 +51,10 @@ class VerifyProbGaussian(VerifyProb):
     
     def _prob_to_ens(self):
         assert self.n_sample_members is not None, 'Set the number of members to sample, e.g., obj.n_sample_members = 15'
-        return sample_dist_gaussian(self.f['mu'], self.f['sigma'], self.n_sample_members, self.move_sampled_ens_axis, self.truncated)
+        ens = sample_dist_gaussian(self.f['mu'], self.f['sigma'], self.n_sample_members, self.move_sampled_ens_axis, self.truncated)
+        if self.clip_member_to_zero is not None:
+            ens[ens < self.clip_member_to_zero] = 0
+        return ens
     
     def _cdf(self, over=None, below=None):
         return cdf_gaussian(self.f['mu'], self.f['sigma'], over, below, self.truncated)

@@ -22,12 +22,13 @@ from .utils_dist import sample_dist_gaussian, cdf_gaussian
 
 
 class VerifyProbGaussian(VerifyProb):
-    def __init__(self, f, o, move_sampled_ens_axis=-1, truncated=False, avg_axis=None, n_sample_members=None,
+    def __init__(self, f, o, move_sampled_ens_axis=-1, truncated=False, avg_axis=None,
+                 n_sample_members=None, clip_member_to_zero=None, 
                  boot_samples=None, working_directory=None, start_from_scratch=True):
         
         self.truncated = truncated
         
-        super().__init__(f, o, move_sampled_ens_axis, avg_axis, n_sample_members, boot_samples, working_directory, start_from_scratch)
+        super().__init__(f, o, move_sampled_ens_axis, avg_axis, n_sample_members, clip_member_to_zero, boot_samples, working_directory, start_from_scratch)
         
     def set_truncation(self, use_truncation):
         self.truncated = use_truncation

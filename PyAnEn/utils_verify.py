@@ -170,8 +170,8 @@ def ens_to_prob(f, ensemble_aixs, over=None, below=None):
         
         f = f.reshape(n_members, -1)
         
-        chunksize = int(os.environ['pyanen_tqdm_chunksize'])
-        parallelize_axis = int(os.environ['pyanen_tqdm_map_axis'])
+        chunksize = 1000 # int(os.environ['pyanen_tqdm_chunksize'])
+        parallelize_axis = -1 # int(os.environ['pyanen_tqdm_map_axis'])
         assert parallelize_axis == -1, 'parallelize_axis needs to be -1 for the ens_to_prob operation. Got {}'.format(parallelize_axis)
         
         ret = process_map(partial(transfer_func, over=over, below=below),

@@ -42,7 +42,8 @@ def test_prob_to_ens():
     
     with pytest.raises(AssertionError):
         ens = verify._prob_to_ens()
-        
+    
+    os.environ['pyanen_tqdm_workers'] = '4'
     verify = VerifyProbCSGD(f, o, n_sample_members=15, move_sampled_ens_axis=-2)
     ens = verify._prob_to_ens()
     

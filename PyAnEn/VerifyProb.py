@@ -37,7 +37,7 @@ class VerifyProb(Verify):
         self.f = f
         self.o = o
         self.n_sample_members = n_sample_members
-        self.clip_member_to_zero = self.clip_member_to_zero
+        self.clip_member_to_zero = clip_member_to_zero
         self.move_sampled_ens_axis = move_sampled_ens_axis
         
         super().__init__(avg_axis, boot_samples, working_directory, start_from_scratch)
@@ -160,6 +160,7 @@ class VerifyProb(Verify):
         
         # Check number of ensemble members to sample
         self._validate_sample_members()
+        self._validate_clip_member_to_zero()
     
     def __str__(self):
         msg = super().__str__()

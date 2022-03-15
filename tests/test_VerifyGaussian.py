@@ -41,6 +41,8 @@ def test_cdf():
 
 def test_prob_to_ens():
     
+    os.environ['pyanen_tqdm_workers'] = '4'
+    
     verify = VerifyProbGaussian(f, o)
     
     with pytest.raises(AssertionError):

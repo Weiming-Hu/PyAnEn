@@ -44,11 +44,11 @@ def _parallel_process(wrapper, iterable):
     return np.concatenate(ens, axis=parallelize_axis)
 
 
-def wrapper_truncgamma_rvs(x, n_sample_members): return truncgamma_gen()(a=(-x[2])/x[1], b=_LARGE_NUMBER_, s=x[0], scale=x[1], loc=x[2]).rvs([n_sample_members] + x[0].shape)
+def wrapper_truncgamma_rvs(x, n_sample_members): return truncgamma_gen()(a=(-x[2])/x[1], b=_LARGE_NUMBER_, s=x[0], scale=x[1], loc=x[2]).rvs([n_sample_members] + list(x[0].shape))
 def wrapper_truncgamma_cdf(x, t): return truncgamma_gen().cdf(x=t, a=(-x[2])/x[1], b=_LARGE_NUMBER_, s=x[0], scale=x[1], loc=x[2])
-def wrapper_truncnorm_rvs(x, n_sample_members): return stats.truncnorm(a=-x[0]/x[1], b=_LARGE_NUMBER_, loc=x[0], scale=x[1]).rvs([n_sample_members] + x[0].shape)
+def wrapper_truncnorm_rvs(x, n_sample_members): return stats.truncnorm(a=-x[0]/x[1], b=_LARGE_NUMBER_, loc=x[0], scale=x[1]).rvs([n_sample_members] + list(x[0].shape))
 def wrapper_truncnorm_cdf(x, t): return stats.truncnorm.cdf(x=t, loc=x[0], scale=x[1], a=-x[0]/x[1], b=_LARGE_NUMBER_)
-def wrapper_norm_rvs(x, n_sample_members): return stats.norm(loc=x[0], scale=x[1]).rvs([n_sample_members] + x.shape)
+def wrapper_norm_rvs(x, n_sample_members): return stats.norm(loc=x[0], scale=x[1]).rvs([n_sample_members] + list(x[0].shape))
 def wrapper_norm_cdf(x, t): return stats.norm.cdf(x=t, loc=x[0], scale=x[1])
 
     

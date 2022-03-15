@@ -26,7 +26,7 @@ from .dist_TruncatedGamma import truncgamma_gen
 _LARGE_NUMBER_ = 10000
 
 
-def _parallel_process(wrapper, iterable):
+def _parallel_process(wrapper, iterable, total):
     
     cores = int(os.environ['pyanen_tqdm_workers'])
     chunksize = int(os.environ['pyanen_tqdm_chunksize'])
@@ -35,7 +35,7 @@ def _parallel_process(wrapper, iterable):
     assert cores > 1
     assert parallelize_axis < 0, 'parallelize_axis needs to be negative, counting from the end of dimensions, excluding the ensemble axis'
     
-    ens = process_map(wrapper, iterable,
+    ens = process_map(wrapper, iterable, total=total,
                       disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
                       leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
                       chunksize=chunksize, max_workers=cores, desc='Process distribution')
@@ -84,7 +84,7 @@ def sample_dist_gaussian(mu, sigma, n_sample_members=15, move_axis=-1, truncated
         else:
             wrapper = partial(wrapper_norm_rvs, n_sample_members=n_sample_members)
         
-        ens = _parallel_process(wrapper, iterable)
+        ens = _parallel_process(wrapper, iterable, total=mu.shape[parallelize_axis])
             
     # Move the ensemble axis somewhere else if the first position is not desired
     if move_axis != 0:
@@ -121,7 +121,7 @@ def sample_dist_csgd(unshifted_mu, sigma, shift, n_sample_members=15, move_axis=
         
         wrapper = partial(wrapper_truncnorm_rvs, n_sample_members=n_sample_members)
         
-        ens = _parallel_process(wrapper, iterable)
+        ens = _parallel_process(wrapper, iterable, total=shape.shape[parallelize_axis])
         
     # Move the ensemble axis somewhere else if the first position is not desired
     if move_axis != 0:
@@ -158,7 +158,7 @@ def cdf_gaussian(mu, sigma, over=None, below=None, truncated=False):
             else:
                 wrapper = partial(wrapper_norm_cdf, t=over)
             
-            probs = _parallel_process(wrapper, iterable)
+            probs = _parallel_process(wrapper, iterable, total=mu.shape[parallelize_axis])
             
         probs = 1 - probs
         
@@ -183,7 +183,7 @@ def cdf_gaussian(mu, sigma, over=None, below=None, truncated=False):
             else:
                 wrapper = partial(wrapper_norm_cdf, t=below)
             
-            probs = _parallel_process(wrapper, iterable)
+            probs = _parallel_process(wrapper, iterable, total=mu.shape[parallelize_axis])
             
     probs[probs < 0] = 0
     probs[probs > 1] = 1
@@ -215,7 +215,7 @@ def cdf_csgd(unshifted_mu, sigma, shift, over=None, below=None):
             )
             
             wrapper = partial(wrapper_truncgamma_cdf, t=over)
-            probs = _parallel_process(wrapper, iterable)
+            probs = _parallel_process(wrapper, iterable, total=shape.shape[parallelize_axis])
             
         probs = 1 - probs
         
@@ -233,7 +233,7 @@ def cdf_csgd(unshifted_mu, sigma, shift, over=None, below=None):
             )
             
             wrapper = partial(wrapper_truncgamma_cdf, t=below)
-            probs = _parallel_process(wrapper, iterable)
+            probs = _parallel_process(wrapper, iterable, total=shape.shape[parallelize_axis])
             
     probs[probs < 0] = 0
     probs[probs > 1] = 1

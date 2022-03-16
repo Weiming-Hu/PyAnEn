@@ -242,7 +242,7 @@ class Verify:
         return post_func(metric)
     
     def __str__(self):
-        msg = '========== PyAnEn Verifier =========='
+        msg = '=============== PyAnEn {} ==============='.format(type(self).__name__)
         msg += '\nAverage/Sample axis (avg_axis): {}'.format(self.avg_axis)
         msg += '\nBootstrap samples (boot_samples): {}'.format(self.boot_samples)
         msg += '\nSave intermediate data at (working_directory): {}'.format(self.working_directory)

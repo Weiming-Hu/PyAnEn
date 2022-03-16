@@ -14,6 +14,8 @@
 # Class definition for probabilistic forecast verification with a Gamma Distribution
 #
 
+import numpy as np
+
 from scipy import stats
 from .VerifyProb import VerifyProb
 from .utils_crps import crps_gamma
@@ -37,7 +39,7 @@ class VerifyProbGamma(VerifyProb):
         assert 'unshifted_mu' in self.f.keys()
         
     def _prob_to_determ(self):
-        return self.f['mu']
+        return np.copy(self.f['mu'])
     
     def _prob_to_variance(self):
         return self.f['sigma'] ** 2

@@ -14,6 +14,7 @@
 # Class definition for probabilistic forecast verification with a Gaussian Distribution
 #
 
+import numpy as np
 import properscoring as ps
 
 from scipy import stats
@@ -35,7 +36,7 @@ class VerifyProbGaussian(VerifyProb):
         assert 'sigma' in self.f.keys()
         
     def _prob_to_determ(self):
-        return self.f['mu']
+        return np.copy(self.f['mu'])
     
     def _prob_to_variance(self):
         return self.f['sigma'] ** 2

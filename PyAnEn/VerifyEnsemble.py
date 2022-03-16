@@ -39,7 +39,7 @@ class VerifyEnsemble(Verify):
         
         self.f = f
         self.o = o
-        self.f_determ = None
+        self.f_collapsed = None
         self.ensemble_axis = ensemble_axis
         self.ensemble_collapse_func = ensemble_collapse_func
         
@@ -56,14 +56,17 @@ class VerifyEnsemble(Verify):
     
     ###### Metric Methods ######
     
+    def _f_determ(self):
+        return np.copy(self.f_collapsed)
+    
     def _error(self):
-        return self.f_determ - self.o
+        return self.f_collapsed - self.o
     
     def _sq_error(self):
-        return (self.f_determ - self.o) ** 2
+        return (self.f_collapsed - self.o) ** 2
     
     def _ab_error(self):
-        return np.abs(self.f_determ - self.o)
+        return np.abs(self.f_collapsed - self.o)
     
     def _crps(self):
         if util.strtobool(os.environ['pyanen_split_crps_ensemble_along_0']):
@@ -130,7 +133,7 @@ class VerifyEnsemble(Verify):
         return self._ens_to_prob(over=over, below=below)
     
     def _iou_determ(self, over=None, below=None):
-        return iou_determ(self.f_determ, self.o, axis=self.avg_axis, over=over, below=below)
+        return iou_determ(self.f_collapsed, self.o, axis=self.avg_axis, over=over, below=below)
     
     def _iou_prob(self, over=(None, None), below=(None, None)):
         
@@ -195,7 +198,7 @@ class VerifyEnsemble(Verify):
         assert callable(self.ensemble_collapse_func)
     
     def _collapse_ensembles(self):
-        self.f_determ = self.ensemble_collapse_func(self.f, axis=self.ensemble_axis)
+        self.f_collapsed = self.ensemble_collapse_func(self.f, axis=self.ensemble_axis)
     
     def __str__(self):
         msg = super().__str__()

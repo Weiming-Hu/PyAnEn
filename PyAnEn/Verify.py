@@ -50,10 +50,13 @@ class Verify:
     def _iou_determ(self, over=None, below=None): raise NotImplementedError
     def _iou_prob(self, over=None, below=None): raise NotImplementedError
     def _cdf(self, over=None, below=None): raise NotImplementedError
+    def _f_determ(self): raise NotImplementedError
         
     ##################
     # Metric Methods #
     ##################
+    
+    def f_determ(self):return self._f_determ()
     
     def rank_hist(self, save_name='rank'): return self._metric_workflow_1(save_name, self._rank_hist)
     def roc(self, over=None, below=None, save_name='roc'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._roc, over=over, below=below)
@@ -83,6 +86,15 @@ class Verify:
     def to_skill_score(f_score, benchmark_score):
         assert f_score.shape == benchmark_score.shape
         return 1 - f_score / benchmark_score
+    
+    @staticmethod
+    def reliability_index(freqs):
+        freqs_sum = np.sum(freqs)
+        
+        if freqs_sum != 1:
+            freqs = freqs / freqs_sum
+            
+        return np.sum(np.abs(freqs - 1 / np.arange(2, len(freqs) + 2)))
     
     ##########################
     # Postprocessing Methods #

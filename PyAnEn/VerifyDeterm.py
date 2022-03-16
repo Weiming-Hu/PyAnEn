@@ -47,6 +47,9 @@ class VerifyDeterm(Verify):
     def _iou_determ(self, over=None, below=None):
         return iou_determ(self.f, self.o, axis=self.avg_axis, over=over, below=below)
     
+    def _f_determ(self):
+        return np.copy(self.f)
+    
     ###################
     # Private Methods #
     ###################

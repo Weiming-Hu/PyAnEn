@@ -78,6 +78,9 @@ class VerifyProb(Verify):
     
     ###### Metric Methods ######
     
+    def _f_determ(self):
+        return self._prob_to_determ()
+    
     def _error(self):
         return self._prob_to_determ() - self.o
     

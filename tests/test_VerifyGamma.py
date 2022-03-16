@@ -11,7 +11,7 @@ import pytest
 import numpy as np
 import matplotlib.pyplot as plt
 
-from PyAnEn import VerifyProbCSGD
+from PyAnEn import VerifyProbGamma
 
 
 # Set seed
@@ -38,13 +38,13 @@ f = {
 
 def test_prob_to_ens():
     
-    verify = VerifyProbCSGD(f, o)
+    verify = VerifyProbGamma(f, o)
     
     with pytest.raises(AssertionError):
         ens = verify._prob_to_ens()
     
     os.environ['pyanen_tqdm_workers'] = '4'
-    verify = VerifyProbCSGD(f, o, n_sample_members=15, move_sampled_ens_axis=-2)
+    verify = VerifyProbGamma(f, o, n_sample_members=15, move_sampled_ens_axis=-2)
     ens = verify._prob_to_ens()
     
     l_shape = list(ens.shape)
@@ -57,9 +57,9 @@ def test_prob_to_ens():
 def test_avg_axis():
     
     def _inner_(f, o, avg_axis, slice_idx, threshold, tag):
-        verify1 = VerifyProbCSGD(f[0], o[0], avg_axis=avg_axis)
-        verify2 = VerifyProbCSGD(f[1], o[1])
-        verify3 = VerifyProbCSGD(f[2], o[2])
+        verify1 = VerifyProbGamma(f[0], o[0], avg_axis=avg_axis)
+        verify2 = VerifyProbGamma(f[1], o[1])
+        verify3 = VerifyProbGamma(f[2], o[2])
         
         # CRPS
 
@@ -121,8 +121,8 @@ def test_reliability():
         'sigma': np.random.rand(*init_shape) * 10 + 0.01,
     }
     
-    verifier_no_boot = VerifyProbCSGD(f=f, o=o)
-    verifier_boot = VerifyProbCSGD(f=f, o=o, boot_samples=10000)
+    verifier_no_boot = VerifyProbGamma(f=f, o=o)
+    verifier_boot = VerifyProbGamma(f=f, o=o, boot_samples=10000)
     
     y_pred1, y_true1, counts1 = verifier_no_boot.reliability(over=1)
     y_pred2, y_true2, counts2 = verifier_boot.reliability(over=1)

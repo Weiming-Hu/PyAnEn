@@ -30,18 +30,20 @@ from .utils_verify import _binned_spread_skill_create_split
 
 class VerifyProb(Verify):
     
-    def __init__(self, f, o, move_sampled_ens_axis=-1, avg_axis=None,
-                 n_sample_members=None, clip_member_to_zero=None,
+    def __init__(self, f, o, move_sampled_ens_axis=-1, truncated=False,
+                 avg_axis=None, n_sample_members=None, clip_member_to_zero=None,
                  boot_samples=None, working_directory=None, start_from_scratch=True):
         
         self.f = f
         self.o = o
+        self.truncated = truncated
         self.n_sample_members = n_sample_members
         self.clip_member_to_zero = clip_member_to_zero
         self.move_sampled_ens_axis = move_sampled_ens_axis
         
         super().__init__(avg_axis, boot_samples, working_directory, start_from_scratch)
     
+    def _pit(self): raise NotImplementedError
     def _crps(self): raise NotImplementedError
     def _prob_to_determ(self): raise NotImplementedError
     def _prob_to_variance(self): raise NotImplementedError
@@ -62,6 +64,14 @@ class VerifyProb(Verify):
         self._validate_clip_member_to_zero()
         return self
     
+    def _validate_truncation(self):
+        assert isinstance(self.truncated, bool)
+        
+    def set_truncation(self, use_truncation):
+        self.truncated = use_truncation
+        self._validate_truncation()
+        return self
+    
     ###################
     # Private Methods #
     ###################
@@ -78,7 +88,13 @@ class VerifyProb(Verify):
         return np.abs(self._prob_to_determ() - self.o)
     
     def _rank_hist(self):
-        return rank_histogram(f=self._prob_to_ens(), o=self.o, ensemble_axis=-1)
+        if self.n_sample_members is None:
+            # Use probability integral transform
+            return self._pit()
+        
+        else:
+            # Use random sampling
+            return rank_histogram(f=self._prob_to_ens(), o=self.o, ensemble_axis=-1)
     
     def _spread(self):
         ens = self._prob_to_ens()
@@ -161,6 +177,7 @@ class VerifyProb(Verify):
         # Check number of ensemble members to sample
         self._validate_sample_members()
         self._validate_clip_member_to_zero()
+        self._validate_truncation()
     
     def __str__(self):
         msg = super().__str__()
@@ -168,4 +185,5 @@ class VerifyProb(Verify):
         msg += '\nObservations (o): {}'.format(self.o.shape)
         msg += '\nEnsemble members to sample (n_sample_members): {}'.format(self.n_sample_members)
         msg += '\nMove generated ensemble axis to (move_sampled_ens_axis): {}'.format(self.move_sampled_ens_axis)
+        msg += '\nTruncated: {}'.format(self.truncated)
         return msg

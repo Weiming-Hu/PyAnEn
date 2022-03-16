@@ -68,5 +68,5 @@ class VerifyProbGamma(VerifyProb):
         mask = self.o == 0
         ranks[mask] = stats.uniform(loc=0, scale=ranks[mask]).rvs()
         
-        raise ranks
+        return ranks
     

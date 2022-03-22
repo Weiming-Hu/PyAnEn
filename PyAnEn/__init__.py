@@ -5,6 +5,7 @@ from .VerifyDeterm import VerifyDeterm
 from .VerifyEnsemble import VerifyEnsemble
 from .VerifyProbGamma import VerifyProbGamma
 from .VerifyProbGaussian import VerifyProbGaussian
+from .VerifyProbGammaHurdle import VerifyProbGammaHurdle
 
 __title__ = "PyAnEn"
 __author__ = "Weiming Hu"
@@ -26,6 +27,7 @@ Defaults = {
     'pyanen_use_tensorflow_math': False,
     'pyanen_skip_nan': False,
     'pyanen_split_crps_ensemble_along_0': False,
+    'pyanen_integrate_range_multiplier': 5,
 }
 
 for k, v in Defaults.items():

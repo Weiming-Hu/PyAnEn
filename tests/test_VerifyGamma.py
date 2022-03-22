@@ -118,11 +118,11 @@ def test_reliability():
         'mu': np.random.rand(*init_shape),
         'unshifted_mu': np.random.rand(*init_shape),
         'shift': -np.random.rand(*init_shape),
-        'sigma': np.random.rand(*init_shape) * 10 + 0.01,
+        'sigma': np.random.rand(*init_shape) * 2 + 0.01,
     }
     
     verifier_no_boot = VerifyProbGamma(f=f, o=o)
-    verifier_boot = VerifyProbGamma(f=f, o=o, boot_samples=10000)
+    verifier_boot = VerifyProbGamma(f=f, o=o, boot_samples=100)
     
     y_pred1, y_true1, counts1 = verifier_no_boot.reliability(over=1)
     y_pred2, y_true2, counts2 = verifier_boot.reliability(over=1)

@@ -61,7 +61,11 @@ def wrapper_truncnorm_rvs(x, n_sample_members):
 def wrapper_truncnorm_cdf(x):
     return stats.truncnorm.cdf(x=x[2], loc=x[0], scale=x[1], a=-x[0]/x[1], b=_LARGE_NUMBER_)
 
-    
+
+#####################################
+# Functions to sample distributions #
+#####################################
+
 def sample_dist_gaussian(mu, sigma, n_sample_members=15, move_axis=-1, truncated=False):
     
     assert mu.shape == sigma.shape
@@ -147,6 +151,10 @@ def sample_dist_gamma(unshifted_mu, sigma, shift, n_sample_members=15, move_axis
     
     return ens
 
+
+##############################
+# Functions to calculate CDF #
+##############################
 
 def cdf_gaussian(mu, sigma, over=None, below=None, truncated=False):
     
@@ -295,6 +303,88 @@ def cdf_gamma(unshifted_mu, sigma, shift, over=None, below=None, truncated=False
                 probs = _parallel_process(wrapper_truncgamma_cdf, iterable, total=shape.shape[parallelize_axis], name='truncgamma.cdf' if truncated else 'gamma.cdf')
             else:
                 probs = _parallel_process(wrapper_gamma_cdf, iterable, total=shape.shape[parallelize_axis], name='truncgamma.cdf' if truncated else 'gamma.cdf')
+                
+    probs[probs < 0] = 0
+    probs[probs > 1] = 1
+    
+    return probs
+
+
+def cdf_gamma_hurdle(pop, mu, sigma, over=None, below=None):
+    # The calculation is as follows:
+    #
+    # 1 - pop                                  given below=0
+    # [1-pop] + pop*CDFgamma(y,shape,scale).   given below>0
+    #
+    
+    assert (over is None) ^ (below is None), 'Must specify over or below'
+    
+    # Deal with the zero value scenario
+    if over == 0:
+        return pop
+    
+    if below == 0:
+        return 1 - pop
+    
+    # Deal with non-zero value scenario
+    
+    # Calculate distribution parameters
+    shape = (mu / sigma) ** 2
+    scale = sigma ** 2 / mu
+    
+    cores = int(os.environ['pyanen_tqdm_workers'])
+    
+    if below is None:
+            
+        if isinstance(over, np.ndarray):
+            assert over.shape == shape.shape
+        elif isinstance(over, np.float) or isinstance(over, np.int):
+            over = np.full(shape.shape, over)
+        else:
+            raise RuntimeError('below should be either a scalar or an Numpy array. Got {}'.format(type(over)))
+        
+        if cores == 1:
+            probs = (1 - pop) + pop * stats.gamma.cdf(x=over, a=shape, scale=scale)
+                
+        else:
+            
+            parallelize_axis = int(os.environ['pyanen_tqdm_map_axis'])
+            
+            iterable = zip(
+                np.split(shape, shape.shape[parallelize_axis], parallelize_axis),
+                np.split(scale, scale.shape[parallelize_axis], parallelize_axis),
+                np.split(np.full(shape.shape, 0), shape.shape[parallelize_axis], parallelize_axis),
+                np.split(over, over.shape[parallelize_axis], parallelize_axis),
+            )
+            
+            probs = _parallel_process(wrapper_gamma_cdf, iterable, total=shape.shape[parallelize_axis], name='gammahurdle.cdf')
+            
+        probs = 1 - probs
+        
+    else:
+            
+        if isinstance(below, np.ndarray):
+            assert below.shape == shape.shape
+        elif isinstance(below, np.float) or isinstance(below, np.int):
+            below = np.full(shape.shape, below)
+        else:
+            raise RuntimeError('below should be either a scalar or an Numpy array. Got {}'.format(type(below)))
+        
+        if cores == 1:
+            probs = (1 - pop) + pop * stats.gamma.cdf(x=below, a=shape, scale=scale)
+                
+        else:
+            
+            parallelize_axis = int(os.environ['pyanen_tqdm_map_axis'])
+            
+            iterable = zip(
+                np.split(shape, shape.shape[parallelize_axis], parallelize_axis),
+                np.split(scale, scale.shape[parallelize_axis], parallelize_axis),
+                np.split(np.full(shape.shape, 0), shape.shape[parallelize_axis], parallelize_axis),
+                np.split(below, below.shape[parallelize_axis], parallelize_axis),
+            )
+            
+            probs = _parallel_process(wrapper_gamma_cdf, iterable, total=shape.shape[parallelize_axis], name='gammahurdle.cdf')
                 
     probs[probs < 0] = 0
     probs[probs > 1] = 1

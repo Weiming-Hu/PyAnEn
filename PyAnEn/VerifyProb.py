@@ -54,6 +54,11 @@ class VerifyProb(Verify):
     # Public Methods #
     ##################
     
+    def set_move_sampled_ens_axis(self, axis):
+        self.move_sampled_ens_axis = axis
+        self._validate()
+        return self
+    
     def set_ensemble_members(self, n):
         self.n_sample_members = n
         self._validate_sample_members()
@@ -63,9 +68,6 @@ class VerifyProb(Verify):
         self.clip_member_to_zero = v
         self._validate_clip_member_to_zero()
         return self
-    
-    def _validate_truncation(self):
-        assert isinstance(self.truncated, bool)
         
     def set_truncation(self, use_truncation):
         self.truncated = use_truncation
@@ -156,6 +158,9 @@ class VerifyProb(Verify):
     def _validate_sample_members(self):
         if self.n_sample_members is not None:
             assert isinstance(self.n_sample_members, int)
+    
+    def _validate_truncation(self):
+        assert isinstance(self.truncated, bool)
             
     def _validate_clip_member_to_zero(self):
         if self.clip_member_to_zero is not None:

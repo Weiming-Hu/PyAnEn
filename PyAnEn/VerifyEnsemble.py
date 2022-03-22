@@ -50,6 +50,16 @@ class VerifyEnsemble(Verify):
         # Calculate the deterministic form of the ensemble forecasts
         self._collapse_ensembles()
     
+    def set_ensemble_axis(self, axis):
+        self.ensemble_axis = axis
+        self._validate()
+        return self
+    
+    def set_collapse_func(self, func):
+        self.ensemble_collapse_func = func
+        self._validate()
+        return self
+    
     ###################
     # Private Methods #
     ###################

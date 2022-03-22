@@ -13,7 +13,7 @@ This is the Python interface and tools for [Parallel Analog Ensemble](https://we
 pip install git+https://github.com/Weiming-Hu/PyAnEn.git
 ```
 
-## Look-Up Table for Included Verification Metrics
+## Implemented Verification Metrics
 
 | **Metric**               | **Method Name**     | **Operate Along Axis** | **Support Bootstraping** | **Parallelizable** |
 |--------------------------|---------------------|------------------------|--------------------------|--------------------|

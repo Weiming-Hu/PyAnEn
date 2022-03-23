@@ -51,7 +51,9 @@ class VerifyProbGammaHurdle(VerifyProb):
         assert 'mu' in self.f.keys()
         assert 'sigma' in self.f.keys()
         assert isinstance(self.n_approx_bins, int)
-        assert len(self.integration_range) == 2
+        
+        if self.integration_range is not None:
+            assert len(self.integration_range) == 2
         
         assert not self.truncated, 'Truncation is currently not implemented.'
         

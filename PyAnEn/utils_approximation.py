@@ -20,6 +20,8 @@ import numpy as np
 
 from tqdm.auto import tqdm
 from distutils import util
+from functools import partial
+from tqdm.contrib.concurrent import process_map
 
 
 # Additional helper functions
@@ -39,6 +41,11 @@ def _get_integration_range(verifier, nbins):
     return np.linspace(integration_min, integration_max, nbins)
 
 
+# Wrapper functions for parallelization
+def wrapper_cdf(x, verifier): return verifier.cdf(below=x)
+def wrapper_brier(x, verifier): return verifier._metric_workflow_1('_'.join(['brier', str(None), str(x)]), verifier._brier, over=None, below=x)
+
+
 def integrate(verifier, type, integration_range=None, nbins=20, return_slices=False):
     
     assert nbins > 5, 'Too few bins to integrate! Got {}'.format(nbins)
@@ -54,35 +61,55 @@ def integrate(verifier, type, integration_range=None, nbins=20, return_slices=Fa
         'desc': 'Integrating {}'.format(type),
     }
     
+    cores = int(os.environ['pyanen_tqdm_workers'])
+    chunksize = int(os.environ['pyanen_tqdm_chunksize'])
+    
+    # Suppress sub-level progress bars and parallelization
+    os.environ['pyanen_tqdm_disable'] = 'True'
+    
+    if cores > 1:
+        os.environ['pyanen_tqdm_workers'] = '1'
+    
     if type == 'brier':
+        
         # Calculate briers at bins
-        seq_brier = np.array(
-            [verifier._metric_workflow_1('_'.join(['brier', str(None), str(_x)]), verifier._brier, over=None, below=_x)
-             for _x in tqdm(seq_x, **pbar_kws)])
+        wrapper = partial(wrapper_brier, verifier=verifier)
+        
+        if cores == 1:
+            seq_y = np.array([wrapper(_x) for _x in tqdm(seq_x, **pbar_kws)])
+        else:
+            seq_y = np.array(process_map(wrapper, seq_x, max_workers=cores, chunksize=chunksize, **pbar_kws))
         
         # Calculate difference
-        diff_x = seq_x[1:] - seq_x[:-1]
-        diff_x = diff_x.reshape(nbins - 1, *(len(seq_brier.shape[1:]) * [1]))
+        seq_x = seq_x[1:] - seq_x[:-1]
+        seq_x = seq_x.reshape(nbins - 1, *(len(seq_y.shape[1:]) * [1]))
         
         # Integrate
-        crps = 0.5 * np.nansum((seq_brier[1:] + seq_brier[:-1]) * diff_x, axis=0)
-        
-        return (diff_x, seq_brier) if return_slices else crps
+        ret = 0.5 * np.nansum((seq_y[1:] + seq_y[:-1]) * seq_x, axis=0)
         
     elif type == 'cdf':
         
         # Calculate CDF at bins
-        seq_cdf = np.array([verifier.cdf(below=_x) for _x in tqdm(seq_x, **pbar_kws)])
+        wrapper = partial(wrapper_cdf, verifier=verifier)
+        
+        if cores == 1:
+            seq_y = np.array([wrapper(_x) for _x in tqdm(seq_x, **pbar_kws)])
+        else:
+            seq_y = np.array(process_map(wrapper, seq_x, max_workers=cores, chunksize=chunksize, **pbar_kws))
         
         # Calculate difference
-        diff_cdf = seq_cdf[1:] - seq_cdf[:-1]
-        seq_x = seq_x[1:].reshape(nbins - 1, *(len(diff_cdf.shape[1:]) * [1]))    
+        seq_y = seq_y[1:] - seq_y[:-1]
+        seq_x = seq_x[1:].reshape(nbins - 1, *(len(seq_y.shape[1:]) * [1]))
         
         # Integrate
-        cdf = np.nansum(seq_x * diff_cdf, axis=0)
-        
-        return (seq_x, diff_cdf) if return_slices else cdf
+        ret = np.nansum(seq_x * seq_y, axis=0)
 
     else:
         raise Exception('Unknon type of integration. Got {}'.format(type))
+    
+    # Resume sub-level progress bars
+    os.environ['pyanen_tqdm_disable'] = str(pbar_kws['disable'])
+    os.environ['pyanen_tqdm_workers'] = str(cores)
+    
+    return (seq_x, seq_y) if return_slices else ret
     

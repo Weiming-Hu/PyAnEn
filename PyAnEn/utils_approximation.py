@@ -23,6 +23,12 @@ from distutils import util
 from functools import partial
 from tqdm.contrib.concurrent import process_map
 
+try:
+    import bottleneck as bn
+    use_bn = True
+except ImportError:
+    use_bn = False
+
 
 # Additional helper functions
 def _get_integration_range(verifier, nbins):
@@ -42,11 +48,11 @@ def _get_integration_range(verifier, nbins):
 
 
 # Wrapper functions for parallelization
-def wrapper_cdf(x, verifier): return verifier.cdf(below=x)
-def wrapper_brier(x, verifier): return verifier._metric_workflow_1('_'.join(['brier', str(None), str(x)]), verifier._brier, over=None, below=x)
+def wrapper_cdf(x, cdf_func): return cdf_func(below=x)
+def wrapper_brier(x, workflow_func, brier_func): return workflow_func('_'.join(['brier', str(None), str(x)]), brier_func, over=None, below=x)
 
 
-def integrate(verifier, type, integration_range=None, nbins=20, return_slices=False):
+def integrate(verifier, type, integration_range=None, nbins=20):
     
     assert nbins > 5, 'Too few bins to integrate! Got {}'.format(nbins)
     
@@ -73,36 +79,66 @@ def integrate(verifier, type, integration_range=None, nbins=20, return_slices=Fa
     if type == 'brier':
         
         # Calculate briers at bins
-        wrapper = partial(wrapper_brier, verifier=verifier)
+        wrapper = partial(wrapper_brier, workflow_func=verifier._metric_workflow_1, brier_func=verifier._brier)
         
         if cores == 1:
-            seq_y = np.array([wrapper(_x) for _x in tqdm(seq_x, **pbar_kws)])
+            brier = np.array([wrapper(_x) for _x in tqdm(seq_x, **pbar_kws)])
         else:
-            seq_y = np.array(process_map(wrapper, seq_x, max_workers=cores, chunksize=chunksize, **pbar_kws))
+            brier = np.array(process_map(wrapper, seq_x, max_workers=cores, chunksize=chunksize, **pbar_kws))
         
         # Calculate difference
-        seq_x = seq_x[1:] - seq_x[:-1]
-        seq_x = seq_x.reshape(nbins - 1, *(len(seq_y.shape[1:]) * [1]))
+        dx = (seq_x[1:] - seq_x[:-1]).reshape(nbins - 1, *(len(brier.shape[1:]) * [1]))
         
         # Integrate
-        ret = 0.5 * np.nansum((seq_y[1:] + seq_y[:-1]) * seq_x, axis=0)
+        if use_bn:
+            ret = 0.5 * bn.nansum((brier[1:] + brier[:-1]) * dx, axis=0)
+        else:
+            ret = 0.5 * np.nansum((brier[1:] + brier[:-1]) * dx, axis=0)
         
-    elif type == 'cdf':
+    elif type == 'mean':
+        # Reference: https://math.berkeley.edu/~scanlon/m16bs04/ln/16b2lec30.pdf
+        
+        # Calculate CDF at bins
+        wrapper = partial(wrapper_cdf, cdf_func=verifier.cdf)
+        
+        if cores == 1:
+            cdf = np.array([wrapper(_x) for _x in tqdm(seq_x, **pbar_kws)])
+        else:
+            cdf = np.array(process_map(wrapper, seq_x, max_workers=cores, chunksize=chunksize, **pbar_kws))
+        
+        # Calculate difference
+        d_cdf = cdf[1:] - cdf[:-1]
+        x = seq_x.reshape(nbins, *(len(cdf.shape[1:]) * [1]))
+        
+        # Integrate
+        if use_bn:
+            ret = 0.5 * bn.nansum((x[1:] + x[:-1]) * d_cdf, axis=0)
+        else:
+            ret = 0.5 * np.nansum((x[1:] + x[:-1]) * d_cdf, axis=0)
+    
+    elif type == 'variance':
+        # Reference: https://math.berkeley.edu/~scanlon/m16bs04/ln/16b2lec30.pdf
         
         # Calculate CDF at bins
         wrapper = partial(wrapper_cdf, verifier=verifier)
         
         if cores == 1:
-            seq_y = np.array([wrapper(_x) for _x in tqdm(seq_x, **pbar_kws)])
+            cdf = np.array([wrapper(_x) for _x in tqdm(seq_x, **pbar_kws)])
         else:
-            seq_y = np.array(process_map(wrapper, seq_x, max_workers=cores, chunksize=chunksize, **pbar_kws))
+            cdf = np.array(process_map(wrapper, seq_x, max_workers=cores, chunksize=chunksize, **pbar_kws))
         
         # Calculate difference
-        seq_y = seq_y[1:] - seq_y[:-1]
-        seq_x = seq_x[1:].reshape(nbins - 1, *(len(seq_y.shape[1:]) * [1]))
+        d_cdf = cdf[1:] - cdf[:-1]
+        x = seq_x.reshape(nbins, *(len(cdf.shape[1:]) * [1]))
+        x_sq = x ** 2
         
         # Integrate
-        ret = np.nansum(seq_x * seq_y, axis=0)
+        if use_bn:
+            mean = 0.5 * bn.nansum((x[1:] + x[:-1]) * d_cdf, axis=0)
+            ret = 0.5 * bn.nansum((x_sq[1:] + x_sq[:-1]) * d_cdf, axis=0) - mean ** 2
+        else:
+            mean = 0.5 * np.nansum((x[1:] + x[:-1]) * d_cdf, axis=0)
+            ret = 0.5 * np.nansum((x_sq[1:] + x_sq[:-1]) * d_cdf, axis=0) - mean ** 2
 
     else:
         raise Exception('Unknon type of integration. Got {}'.format(type))
@@ -111,5 +147,5 @@ def integrate(verifier, type, integration_range=None, nbins=20, return_slices=Fa
     os.environ['pyanen_tqdm_disable'] = str(pbar_kws['disable'])
     os.environ['pyanen_tqdm_workers'] = str(cores)
     
-    return (seq_x, seq_y) if return_slices else ret
+    return ret
     

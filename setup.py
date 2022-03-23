@@ -29,6 +29,5 @@ setuptools.setup(
         'scipy',
         'sklearn',
         'pandas',
-        'dill',
     ],
 )

@@ -29,10 +29,10 @@ class VerifyProbGammaHurdle(VerifyProb):
                  integration_range=None, boot_samples=None,
                  working_directory=None, start_from_scratch=True):
         
-        super().__init__(f, o, move_sampled_ens_axis, truncated, avg_axis, n_sample_members, clip_member_to_zero, boot_samples, working_directory, start_from_scratch)
-        
         self.n_approx_bins = n_approx_bins
         self.integration_range = integration_range
+        
+        super().__init__(f, o, move_sampled_ens_axis, truncated, avg_axis, n_sample_members, clip_member_to_zero, boot_samples, working_directory, start_from_scratch)
     
     def set_bins(self, nbins):
         self.n_approx_bins = nbins

@@ -54,7 +54,9 @@ class VerifyProbGammaHurdle(VerifyProb):
         
         if self.integration_range is not None:
             assert len(self.integration_range) == 2
-        
+    
+    def _validate_truncation(self):
+        super()._validate_truncation()
         assert not self.truncated, 'Truncation is currently not implemented.'
         
     def _prob_to_variance(self):

@@ -56,13 +56,16 @@ def integrate(verifier, type, integration_range=None, nbins=20, return_slices=Fa
     
     if type == 'brier':
         # Calculate briers at bins
-        seq_brier = np.array([verifier.brier(below=_x) for _x in tqdm(seq_x, **pbar_kws)])
+        seq_brier = np.array(
+            [verifier._metric_workflow_1('_'.join(['brier', str(None), str(_x)]), verifier._brier, over=None, below=_x)
+             for _x in tqdm(seq_x, **pbar_kws)])
         
         # Calculate difference
         diff_x = seq_x[1:] - seq_x[:-1]
+        diff_x = diff_x.reshape(nbins - 1, *(len(seq_brier.shape[1:]) * [1]))
         
         # Integrate
-        crps = 0.5 * np.sum((seq_brier[1:] + seq_brier[:-1]) * diff_x)
+        crps = 0.5 * np.nansum((seq_brier[1:] + seq_brier[:-1]) * diff_x, axis=0)
         
         return (diff_x, seq_brier) if return_slices else crps
         

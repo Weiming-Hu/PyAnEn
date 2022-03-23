@@ -11,7 +11,7 @@ __title__ = "PyAnEn"
 __author__ = "Weiming Hu"
 
 Defaults = {
-    'pyanen_ens_to_prob_method': 'kde',
+    'pyanen_ens_to_prob_method': 'moments',
     'pyanen_kde_bandwidth': 0.01,
     'pyanen_kde_kernel': 'gaussian',
     'pyanen_kde_samples': 1000,

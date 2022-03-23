@@ -31,6 +31,8 @@ def test_crps():
 
     verifier = VerifyProbGamma(f=f, o=o)
     i_crps = integrate(verifier, 'brier', integration_range=(-100, 100), nbins=10000)
-    a_crps = verifier.crps()
-    assert np.abs(i_crps - a_crps) < 0.1
+    assert i_crps.shape == (3, 4, 5)
+    
+    a_crps = verifier.set_avg_axis(None).crps()
+    assert np.abs(i_crps.mean() - a_crps) < 0.1
     

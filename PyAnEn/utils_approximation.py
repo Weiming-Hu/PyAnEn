@@ -48,8 +48,8 @@ def _get_integration_range(verifier, nbins):
 
 
 # Wrapper functions for parallelization
-def wrapper_cdf(x, cdf_func): return cdf_func(below=x)
-def wrapper_brier(x, workflow_func, brier_func): return workflow_func('_'.join(['brier', str(None), str(x)]), brier_func, over=None, below=x)
+def wrapper_cdf(x, verifier): return verifier.cdf(below=x)
+def wrapper_brier(x, verifier): return verifier._metric_workflow_1('_'.join(['brier', str(None), str(x)]), verifier._brier, over=None, below=x)
 
 
 def integrate(verifier, type, integration_range=None, nbins=20):
@@ -79,7 +79,7 @@ def integrate(verifier, type, integration_range=None, nbins=20):
     if type == 'brier':
         
         # Calculate briers at bins
-        wrapper = partial(wrapper_brier, workflow_func=verifier._metric_workflow_1, brier_func=verifier._brier)
+        wrapper = partial(wrapper_brier, verifier=verifier)
         
         if cores == 1:
             brier = np.array([wrapper(_x) for _x in tqdm(seq_x, **pbar_kws)])
@@ -99,7 +99,7 @@ def integrate(verifier, type, integration_range=None, nbins=20):
         # Reference: https://math.berkeley.edu/~scanlon/m16bs04/ln/16b2lec30.pdf
         
         # Calculate CDF at bins
-        wrapper = partial(wrapper_cdf, cdf_func=verifier.cdf)
+        wrapper = partial(wrapper_cdf, verifier=verifier)
         
         if cores == 1:
             cdf = np.array([wrapper(_x) for _x in tqdm(seq_x, **pbar_kws)])

@@ -21,7 +21,7 @@ import numpy as np
 from tqdm.auto import tqdm
 from distutils import util
 from functools import partial
-from tqdm.contrib.concurrent import process_map, thread_map
+from tqdm.contrib.concurrent import thread_map
 
 try:
     import bottleneck as bn
@@ -84,7 +84,7 @@ def integrate(verifier, type, integration_range=None, nbins=20):
         if cores == 1:
             brier = np.array([wrapper(_x) for _x in tqdm(seq_x, **pbar_kws)])
         else:
-            brier = np.array(process_map(wrapper, seq_x, max_workers=cores, chunksize=chunksize, **pbar_kws))
+            brier = np.array(thread_map(wrapper, seq_x, max_workers=cores, chunksize=chunksize, **pbar_kws))
         
         # Calculate difference
         dx = (seq_x[1:] - seq_x[:-1]).reshape(nbins - 1, *(len(brier.shape[1:]) * [1]))
@@ -104,7 +104,7 @@ def integrate(verifier, type, integration_range=None, nbins=20):
         if cores == 1:
             cdf = np.array([wrapper(_x) for _x in tqdm(seq_x, **pbar_kws)])
         else:
-            cdf = np.array(process_map(wrapper, seq_x, max_workers=cores, chunksize=chunksize, **pbar_kws))
+            cdf = np.array(thread_map(wrapper, seq_x, max_workers=cores, chunksize=chunksize, **pbar_kws))
         
         # Calculate difference
         d_cdf = cdf[1:] - cdf[:-1]
@@ -125,7 +125,7 @@ def integrate(verifier, type, integration_range=None, nbins=20):
         if cores == 1:
             cdf = np.array([wrapper(_x) for _x in tqdm(seq_x, **pbar_kws)])
         else:
-            cdf = np.array(process_map(wrapper, seq_x, max_workers=cores, chunksize=chunksize, **pbar_kws))
+            cdf = np.array(thread_map(wrapper, seq_x, max_workers=cores, chunksize=chunksize, **pbar_kws))
         
         # Calculate difference
         d_cdf = cdf[1:] - cdf[:-1]

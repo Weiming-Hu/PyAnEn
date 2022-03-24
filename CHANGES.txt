@@ -1,4 +1,4 @@
-# PyAnEn 0.4.1
+# PyAnEn 0.4.2
 
 - Added verification for Gamma hurdle model
 

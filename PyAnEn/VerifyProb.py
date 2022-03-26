@@ -205,5 +205,5 @@ class VerifyProb(Verify):
         msg += '\nEnsemble members to sample (n_sample_members): {}'.format(self.n_sample_members)
         msg += '\nMove generated ensemble axis to (move_sampled_ens_axis): {}'.format(self.move_sampled_ens_axis)
         msg += '\nTruncated (truncated): {}'.format(self.truncated)
-        msg += '\Randomize zero ranks (pit_randomize_zero_ranks): {}'.format(self.pit_randomize_zero_ranks)
+        msg += '\nRandomize zero ranks (pit_randomize_zero_ranks): {}'.format(self.pit_randomize_zero_ranks)
         return msg

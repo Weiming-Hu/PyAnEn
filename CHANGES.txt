@@ -1,6 +1,7 @@
-# PyAnEn 0.4.2
+# PyAnEn 0.4.3
 
 - Added verification for Gamma hurdle model
+- Simplified CDF calculation for `below` and `over`
 
 # PyAnEn 0.3.10
 

@@ -16,7 +16,6 @@
 
 import numpy as np
 
-from scipy import stats
 from .VerifyProb import VerifyProb
 from .utils_crps import crps_gamma
 from .utils_dist import sample_dist_gamma, cdf_gamma
@@ -24,11 +23,13 @@ from .utils_dist import sample_dist_gamma, cdf_gamma
 
 class VerifyProbGamma(VerifyProb):
     
-    def __init__(self, f, o, move_sampled_ens_axis=-1, truncated=False, avg_axis=None,
+    def __init__(self, f, o, move_sampled_ens_axis=-1, truncated=False,
+                 pit_randomize_zero_ranks=True, avg_axis=None,
                  n_sample_members=None, clip_member_to_zero=None,
                  boot_samples=None, working_directory=None, start_from_scratch=True):
         
-        super().__init__(f, o, move_sampled_ens_axis, truncated, avg_axis, n_sample_members, clip_member_to_zero, boot_samples, working_directory, start_from_scratch)
+        super().__init__(f, o, move_sampled_ens_axis, truncated, pit_randomize_zero_ranks, 
+                         avg_axis, n_sample_members, clip_member_to_zero, boot_samples, working_directory, start_from_scratch)
         
     def _validate(self):
         super()._validate()
@@ -63,12 +64,4 @@ class VerifyProbGamma(VerifyProb):
             raise NotImplementedError
         else:
             return crps_gamma(self.f['unshifted_mu'], self.f['sigma'], self.f['shift'], self.o, reduce_sum=False)
-    
-    def _pit(self):
-        ranks = cdf_gamma(self.f['unshifted_mu'], self.f['sigma'], self.f['shift'], over=None, below=self.o, truncated=self.truncated)
-        
-        mask = self.o == 0
-        ranks[mask] = stats.uniform(loc=0, scale=ranks[mask]).rvs()
-        
-        return ranks
     

@@ -1,6 +1,5 @@
 # Set environment variables
 import os
-from cffi import VerificationError
 
 os.environ['pyanen_boot_repeats'] = '30'
 os.environ['pyanen_lbeta_tensorflow'] = 'True'
@@ -11,6 +10,7 @@ import pytest
 import numpy as np
 import matplotlib.pyplot as plt
 
+from scipy import stats
 from PyAnEn import VerifyProbGamma
 
 
@@ -140,4 +140,24 @@ def test_reliability():
     assert np.all(y_true2[:, 0] <= y_true1)
     assert np.all(y_true1 <= y_true2[:, 2])
     assert np.all(counts1 == counts2)
+
+def test_pit():
+    mu, sigma, arr_size = 10, 3, (30, 40, 50)
+
+    shape = (mu / sigma) ** 2
+    scale = sigma ** 2 / mu
+
+    o = stats.gamma(a=shape, scale=scale).rvs(arr_size)
+    f = {
+        'mu': np.full(arr_size, mu),
+        'unshifted_mu': np.full(arr_size, mu),
+        'sigma': np.full(arr_size, sigma),
+        'shift': np.full(arr_size, 0),
+    }
+
+    verifier = VerifyProbGamma(f=f, o=o)
+    ranks = verifier.rank_hist()
+    counts, _, _ = plt.hist(ranks.ravel())
     
+    assert ranks.shape == arr_size
+    assert np.all(np.abs(counts - counts.mean()) / counts.mean() < 0.05)

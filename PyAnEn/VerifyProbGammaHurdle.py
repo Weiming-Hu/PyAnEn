@@ -14,9 +14,6 @@
 # Class definition for probabilistic forecast verification with a Gamma Hurdle Model
 #
 
-import numpy as np
-
-from scipy import stats
 from .VerifyProb import VerifyProb
 from .utils_dist import cdf_gamma_hurdle
 from .utils_approximation import integrate
@@ -24,7 +21,8 @@ from .utils_approximation import integrate
 
 class VerifyProbGammaHurdle(VerifyProb):
     
-    def __init__(self, f, o, move_sampled_ens_axis=-1, truncated=False, avg_axis=None,
+    def __init__(self, f, o, move_sampled_ens_axis=-1, truncated=False,
+                 pit_randomize_zero_ranks=True, avg_axis=None,
                  n_sample_members=None, clip_member_to_zero=None, n_approx_bins=20, 
                  integration_range=None, boot_samples=None,
                  working_directory=None, start_from_scratch=True):
@@ -32,7 +30,8 @@ class VerifyProbGammaHurdle(VerifyProb):
         self.n_approx_bins = n_approx_bins
         self.integration_range = integration_range
         
-        super().__init__(f, o, move_sampled_ens_axis, truncated, avg_axis, n_sample_members, clip_member_to_zero, boot_samples, working_directory, start_from_scratch)
+        super().__init__(f, o, move_sampled_ens_axis, truncated, pit_randomize_zero_ranks, 
+                         avg_axis, n_sample_members, clip_member_to_zero, boot_samples, working_directory, start_from_scratch)
     
     def set_bins(self, nbins):
         self.n_approx_bins = nbins
@@ -65,14 +64,6 @@ class VerifyProbGammaHurdle(VerifyProb):
     def _cdf(self, over=None, below=None):
         return cdf_gamma_hurdle(self.f['pop'], self.f['mu'], self.f['sigma'], over=over, below=below)
     
-    def _pit(self):
-        ranks = cdf_gamma_hurdle(self.f['pop'], self.f['mu'], self.f['sigma'], over=None, below=self.o)
-        
-        mask = self.o == 0
-        ranks[mask] = stats.uniform(loc=0, scale=ranks[mask]).rvs()
-        
-        return ranks
-
     def _prob_to_determ(self):
         return integrate(verifier=self, type='mean', nbins=self.n_approx_bins, integration_range=None)
     

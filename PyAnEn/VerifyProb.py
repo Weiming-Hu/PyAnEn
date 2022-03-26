@@ -17,6 +17,7 @@
 import os
 import numpy as np
 
+from scipy import stats
 from distutils import util
 from .Verify import Verify
 from .utils_verify import iou_prob
@@ -30,7 +31,7 @@ from .utils_verify import _binned_spread_skill_create_split
 
 class VerifyProb(Verify):
     
-    def __init__(self, f, o, move_sampled_ens_axis=-1, truncated=False,
+    def __init__(self, f, o, move_sampled_ens_axis=-1, truncated=False, pit_randomize_zero_ranks=True,
                  avg_axis=None, n_sample_members=None, clip_member_to_zero=None,
                  boot_samples=None, working_directory=None, start_from_scratch=True):
         
@@ -40,10 +41,10 @@ class VerifyProb(Verify):
         self.n_sample_members = n_sample_members
         self.clip_member_to_zero = clip_member_to_zero
         self.move_sampled_ens_axis = move_sampled_ens_axis
+        self.pit_randomize_zero_ranks = pit_randomize_zero_ranks
         
         super().__init__(avg_axis, boot_samples, working_directory, start_from_scratch)
     
-    def _pit(self): raise NotImplementedError
     def _crps(self): raise NotImplementedError
     def _prob_to_determ(self): raise NotImplementedError
     def _prob_to_variance(self): raise NotImplementedError
@@ -153,6 +154,15 @@ class VerifyProb(Verify):
         
         return iou_prob(f_prob, o_binary, axis=self.avg_axis, over=over[1], below=below[1])
     
+    def _pit(self):
+        ranks = self._cdf(over=None, below=self.o)
+        
+        if self.pit_randomize_zero_ranks:
+            mask = self.o == 0
+            ranks[mask] = stats.uniform(loc=0, scale=ranks[mask]).rvs()
+        
+        return ranks
+        
     ###### Other Methods ######
     
     def _validate_sample_members(self):
@@ -170,6 +180,7 @@ class VerifyProb(Verify):
         super()._validate()
         
         assert isinstance(self.move_sampled_ens_axis, int)
+        assert isinstance(self.pit_randomize_zero_ranks, bool)
     
         # Check forecasts and observations
         assert hasattr(self.f, 'keys'), 'f should be dict-like'
@@ -193,5 +204,6 @@ class VerifyProb(Verify):
         msg += '\nObservations (o): {}'.format(self.o.shape)
         msg += '\nEnsemble members to sample (n_sample_members): {}'.format(self.n_sample_members)
         msg += '\nMove generated ensemble axis to (move_sampled_ens_axis): {}'.format(self.move_sampled_ens_axis)
-        msg += '\nTruncated: {}'.format(self.truncated)
+        msg += '\nTruncated (truncated): {}'.format(self.truncated)
+        msg += '\Randomize zero ranks (pit_randomize_zero_ranks): {}'.format(self.pit_randomize_zero_ranks)
         return msg

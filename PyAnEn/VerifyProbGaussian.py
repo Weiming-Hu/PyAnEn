@@ -17,18 +17,19 @@
 import numpy as np
 import properscoring as ps
 
-from scipy import stats
 from .VerifyProb import VerifyProb
 from .utils_crps import crps_truncated_gaussian
 from .utils_dist import sample_dist_gaussian, cdf_gaussian
 
 
 class VerifyProbGaussian(VerifyProb):
-    def __init__(self, f, o, move_sampled_ens_axis=-1, truncated=False, avg_axis=None,
+    def __init__(self, f, o, move_sampled_ens_axis=-1, truncated=False, 
+                 pit_randomize_zero_ranks=True, avg_axis=None,
                  n_sample_members=None, clip_member_to_zero=None, 
                  boot_samples=None, working_directory=None, start_from_scratch=True):
         
-        super().__init__(f, o, move_sampled_ens_axis, truncated, avg_axis, n_sample_members, clip_member_to_zero, boot_samples, working_directory, start_from_scratch)
+        super().__init__(f, o, move_sampled_ens_axis, truncated, pit_randomize_zero_ranks,
+                         avg_axis, n_sample_members, clip_member_to_zero, boot_samples, working_directory, start_from_scratch)
         
     def _validate(self):
         super()._validate()
@@ -61,10 +62,3 @@ class VerifyProbGaussian(VerifyProb):
         else:
             return ps.crps_gaussian(self.o, mu=self.f['mu'], sig=self.f['sigma'])
     
-    def _pit(self):
-        ranks = cdf_gaussian(self.f['mu'], self.f['sigma'], over=None, below=self.o, truncated=self.truncated)
-        
-        mask = self.o == 0
-        ranks[mask] = stats.uniform(loc=0, scale=ranks[mask]).rvs()
-        
-        return ranks

@@ -108,7 +108,7 @@ class VerifyProb(Verify):
             return np.max(ens, axis=-1) - np.min(ens, axis=-1)
     
     def _brier(self, over, below):
-        brier = self._cdf(over=over, below=below) - binarize_obs(self.o, over=over, below=below)
+        brier = self.cdf(over=over, below=below) - binarize_obs(self.o, over=over, below=below)
         return brier ** 2
     
     def _binned_spread_skill(self, nbins=15):
@@ -122,7 +122,7 @@ class VerifyProb(Verify):
     def _reliability(self, nbins=15, over=None, below=None):
         
         # Calculate forecasted probability and binarized observations
-        f_prob = self._cdf(over=over, below=below)
+        f_prob = self.cdf(over=over, below=below)
         o_binary = binarize_obs(self.o, over=over, below=below)
         
         return _reliability_split(f_prob, o_binary, nbins)
@@ -130,13 +130,13 @@ class VerifyProb(Verify):
     def _roc(self, over=None, below=None):
         
         # Calculate forecasted probability and binarized observations
-        f_prob = self._cdf(over=over, below=below)
+        f_prob = self.cdf(over=over, below=below)
         o_binary = binarize_obs(self.o, over=over, below=below)
         
         return calculate_roc(f_prob, o_binary)
     
     def _sharpness(self, over=None, below=None):
-        return self._cdf(over=over, below=below)
+        return self.cdf(over=over, below=below)
     
     def _iou_determ(self, over=None, below=None):
         return iou_determ(self._prob_to_determ(), self.o, axis=self.avg_axis, over=over, below=below)
@@ -147,13 +147,13 @@ class VerifyProb(Verify):
         assert isinstance(below, tuple) or isinstance(below, list)
         assert len(over) == 2 or len(below) == 2
         
-        f_prob = self._cdf(over=over[0], below=below[0])
+        f_prob = self.cdf(over=over[0], below=below[0])
         o_binary = binarize_obs(self.o, over=over[0], below=below[0])
         
         return iou_prob(f_prob, o_binary, axis=self.avg_axis, over=over[1], below=below[1])
     
     def _pit(self):
-        ranks = self._cdf(over=None, below=self.o)
+        ranks = self.cdf(over=None, below=self.o)
         
         if self.pit_randomize_zero_ranks:
             mask = self.o == 0

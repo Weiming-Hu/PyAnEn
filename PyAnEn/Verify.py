@@ -142,24 +142,24 @@ class Verify:
     
     def set_avg_axis(self, x):
         self.avg_axis = x
-        self._validate_avg_axis()
+        self._validate()
         return self
     
     def set_boot_samples(self, samples):
         self.boot_samples = samples
-        self._validate_boot_samples()
+        self._validate()
+        return self
+        
+    def disable_boot(self):
+        self.boot_samples = None
         return self
         
     def enable_saving(self, working_directory, start_from_scratch=True):
         self.working_directory = working_directory
         self.start_from_scratch = start_from_scratch
-        self._validate_saving()
+        self._validate()
         return self
     
-    def disable_boot(self):
-        self.boot_samples = None
-        return self
-        
     def disable_saving(self):
         self.working_directory = None
         return self
@@ -242,9 +242,31 @@ class Verify:
         return post_func(metric)
     
     def __str__(self):
-        msg = '=============== PyAnEn {} ==============='.format(type(self).__name__)
+        msg = '=============== PyAnEn::{} ==============='.format(type(self).__name__)
+        
+        if hasattr(self, 'f'):
+            msg += '\nForecast (f): {}'.format(Verify._format(self.f))
+            
+        if hasattr(self, 'o'):
+            msg += '\nObservations (o): {}'.format(Verify._format(self.o))
+        
         msg += '\nAverage/Sample axis (avg_axis): {}'.format(self.avg_axis)
         msg += '\nBootstrap samples (boot_samples): {}'.format(self.boot_samples)
         msg += '\nSave intermediate data at (working_directory): {}'.format(self.working_directory)
         msg += '\nIgnore saved intermediate data (start_from_scratch): {}'.format(self.start_from_scratch)
+        
         return msg
+    
+    @staticmethod
+    def _format(obj, indent=''):
+        if not hasattr(obj, "__len__"):
+            return '{}{}'.format(indent, obj)
+        elif isinstance(obj, list) or isinstance(obj, tuple):
+            return '{}sequence [{}]'.format(indent, len(obj))
+        elif isinstance(obj, np.ndarray):
+            return '{}array {}'.format(indent, obj.shape)
+        elif isinstance(obj, dict):
+            return '\n{}  - '.format(indent).join([' dict'] + ['{}:{}'.format(k, Verify._format(v, ' ')) for k, v in obj.items()])
+        else:
+            return '** UNKNOWN TYPE **'
+        

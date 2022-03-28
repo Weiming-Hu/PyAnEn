@@ -2,10 +2,11 @@
 
 _A standalone module that supports Parallel Analog Ensemble and various verification__
 
-## Please Read This
+This project started off as a Python tool for reading and analyzing [Parallel Analog Ensemble](https://weiming-hu.github.io/AnalogsEnsemble/). However, as I continue to work on this, it has evolved to the point of including many more functionalities. Aside from supporting analysis of PAnEn forecasts, it includes many verification functions. The classes can easily be extended to other types of distributions that are currently not included.
 
-This is the Python interface and tools for [Parallel Analog Ensemble](https://weiming-hu.github.io/AnalogsEnsemble/). Currently, it is in its early development stage. I encourage you to reach out to [me](https://weiming-hu.github.io/) if you plan to use it. I will be happy to assist you on integrating [Analog Ensemble](https://weiming-hu.github.io/AnalogsEnsemble/) into your scientific workflow.
+I will be happy to assist you to integrate [Analog Ensemble](https://weiming-hu.github.io/AnalogsEnsemble/) into your scientific workflow.
 
+Documentation is currently being written.
 
 ## Install
 

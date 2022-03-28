@@ -14,6 +14,8 @@
 # Class definition for probabilistic forecast verification with a Gamma Hurdle Model
 #
 
+import numpy as np
+
 from .VerifyProb import VerifyProb
 from .utils_dist import cdf_gamma_hurdle
 from .utils_approximation import integrate
@@ -27,10 +29,12 @@ class VerifyProbGammaHurdle(VerifyProb):
                  integration_range=None, boot_samples=None,
                  working_directory=None, start_from_scratch=True):
         
+        self.f = f
+        self.o = o
         self.n_approx_bins = n_approx_bins
         self.integration_range = integration_range
         
-        super().__init__(f, o, move_sampled_ens_axis, truncated, pit_randomize_zero_ranks, 
+        super().__init__(move_sampled_ens_axis, truncated, pit_randomize_zero_ranks, 
                          avg_axis, n_sample_members, clip_member_to_zero, boot_samples, working_directory, start_from_scratch)
     
     def set_bins(self, nbins):
@@ -45,6 +49,10 @@ class VerifyProbGammaHurdle(VerifyProb):
     
     def _validate(self):
         super()._validate()
+    
+        # Check forecasts and observations
+        assert hasattr(self.f, 'keys'), 'f should be dict-like'
+        assert isinstance(self.o, np.ndarray)
         
         assert 'pop' in self.f.keys()
         assert 'mu' in self.f.keys()

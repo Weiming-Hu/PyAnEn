@@ -31,12 +31,10 @@ from .utils_verify import _binned_spread_skill_create_split
 
 class VerifyProb(Verify):
     
-    def __init__(self, f, o, move_sampled_ens_axis=-1, truncated=False, pit_randomize_zero_ranks=True,
+    def __init__(self, move_sampled_ens_axis=-1, truncated=False, pit_randomize_zero_ranks=True,
                  avg_axis=None, n_sample_members=None, clip_member_to_zero=None,
                  boot_samples=None, working_directory=None, start_from_scratch=True):
         
-        self.f = f
-        self.o = o
         self.truncated = truncated
         self.n_sample_members = n_sample_members
         self.clip_member_to_zero = clip_member_to_zero
@@ -62,17 +60,17 @@ class VerifyProb(Verify):
     
     def set_ensemble_members(self, n):
         self.n_sample_members = n
-        self._validate_sample_members()
+        self._validate()
         return self
     
     def set_member_clip(self, v):
         self.clip_member_to_zero = v
-        self._validate_clip_member_to_zero()
+        self._validate()
         return self
         
     def set_truncation(self, use_truncation):
         self.truncated = use_truncation
-        self._validate_truncation()
+        self._validate()
         return self
     
     ###################
@@ -181,17 +179,6 @@ class VerifyProb(Verify):
         
         assert isinstance(self.move_sampled_ens_axis, int)
         assert isinstance(self.pit_randomize_zero_ranks, bool)
-    
-        # Check forecasts and observations
-        assert hasattr(self.f, 'keys'), 'f should be dict-like'
-        assert isinstance(self.o, np.ndarray)
-        
-        # Check dimensions
-        o_shape = list(self.o.shape)
-        
-        for k in self.f.keys():
-            f_shape = list(self.f[k].shape)
-            assert f_shape == o_shape, 'Shape mismatch: f[{}] ({}) and o ({})'.format(k, f_shape, o_shape)
         
         # Check number of ensemble members to sample
         self._validate_sample_members()
@@ -200,8 +187,6 @@ class VerifyProb(Verify):
     
     def __str__(self):
         msg = super().__str__()
-        msg += '\nForecast (f): {}'.format(', '.join(self.f.keys()))
-        msg += '\nObservations (o): {}'.format(self.o.shape)
         msg += '\nEnsemble members to sample (n_sample_members): {}'.format(self.n_sample_members)
         msg += '\nMove generated ensemble axis to (move_sampled_ens_axis): {}'.format(self.move_sampled_ens_axis)
         msg += '\nTruncated (truncated): {}'.format(self.truncated)

@@ -23,12 +23,6 @@ from distutils import util
 from functools import partial
 from tqdm.contrib.concurrent import thread_map
 
-try:
-    import bottleneck as bn
-    use_bn = True
-except ImportError:
-    use_bn = False
-
 
 # Additional helper functions
 def _get_integration_range(verifier, nbins):
@@ -36,8 +30,8 @@ def _get_integration_range(verifier, nbins):
     assert range_multi > 0
     
     # Define the x bins to integrate
-    vmin = np.nanmin(verifier.o)
-    vmax = np.nanmax(verifier.o)
+    vmin = np.min(verifier.o)
+    vmax = np.max(verifier.o)
     
     vrange = vmax - vmin
     
@@ -90,10 +84,7 @@ def integrate(verifier, type, integration_range=None, nbins=20):
         dx = (seq_x[1:] - seq_x[:-1]).reshape(nbins - 1, *(len(brier.shape[1:]) * [1]))
         
         # Integrate
-        if use_bn:
-            ret = 0.5 * bn.nansum((brier[1:] + brier[:-1]) * dx, axis=0)
-        else:
-            ret = 0.5 * np.nansum((brier[1:] + brier[:-1]) * dx, axis=0)
+        ret = 0.5 * np.sum((brier[1:] + brier[:-1]) * dx, axis=0)
         
     elif type == 'mean':
         # Reference: https://math.berkeley.edu/~scanlon/m16bs04/ln/16b2lec30.pdf
@@ -111,10 +102,7 @@ def integrate(verifier, type, integration_range=None, nbins=20):
         x = seq_x.reshape(nbins, *(len(cdf.shape[1:]) * [1]))
         
         # Integrate
-        if use_bn:
-            ret = 0.5 * bn.nansum((x[1:] + x[:-1]) * d_cdf, axis=0)
-        else:
-            ret = 0.5 * np.nansum((x[1:] + x[:-1]) * d_cdf, axis=0)
+        ret = 0.5 * np.sum((x[1:] + x[:-1]) * d_cdf, axis=0)
     
     elif type == 'variance':
         # Reference: https://math.berkeley.edu/~scanlon/m16bs04/ln/16b2lec30.pdf
@@ -133,12 +121,8 @@ def integrate(verifier, type, integration_range=None, nbins=20):
         x_sq = x ** 2
         
         # Integrate
-        if use_bn:
-            mean = 0.5 * bn.nansum((x[1:] + x[:-1]) * d_cdf, axis=0)
-            ret = 0.5 * bn.nansum((x_sq[1:] + x_sq[:-1]) * d_cdf, axis=0) - mean ** 2
-        else:
-            mean = 0.5 * np.nansum((x[1:] + x[:-1]) * d_cdf, axis=0)
-            ret = 0.5 * np.nansum((x_sq[1:] + x_sq[:-1]) * d_cdf, axis=0) - mean ** 2
+        mean = 0.5 * np.sum((x[1:] + x[:-1]) * d_cdf, axis=0)
+        ret = 0.5 * np.sum((x_sq[1:] + x_sq[:-1]) * d_cdf, axis=0) - mean ** 2
 
     else:
         raise Exception('Unknon type of integration. Got {}'.format(type))

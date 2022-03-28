@@ -212,8 +212,6 @@ class VerifyEnsemble(Verify):
     
     def __str__(self):
         msg = super().__str__()
-        msg += '\nForecasts (f): {}'.format(self.f.shape)
-        msg += '\nObservations (o): {}'.format(self.o.shape)
         msg += '\nEnsemble axis (ensemble_axis): {}'.format(self.ensemble_axis)
         msg += '\nEnsemble collapsing function (ensemble_collapse_func): {}'.format(self.ensemble_collapse_func.__name__)
         return msg

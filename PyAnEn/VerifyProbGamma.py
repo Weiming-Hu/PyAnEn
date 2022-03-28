@@ -28,11 +28,25 @@ class VerifyProbGamma(VerifyProb):
                  n_sample_members=None, clip_member_to_zero=None,
                  boot_samples=None, working_directory=None, start_from_scratch=True):
         
-        super().__init__(f, o, move_sampled_ens_axis, truncated, pit_randomize_zero_ranks, 
+        self.f = f
+        self.o = o
+        
+        super().__init__(move_sampled_ens_axis, truncated, pit_randomize_zero_ranks, 
                          avg_axis, n_sample_members, clip_member_to_zero, boot_samples, working_directory, start_from_scratch)
         
     def _validate(self):
         super()._validate()
+    
+        # Check forecasts and observations
+        assert hasattr(self.f, 'keys'), 'f should be dict-like'
+        assert isinstance(self.o, np.ndarray)
+        
+        # Check dimensions
+        o_shape = list(self.o.shape)
+        
+        for k in self.f.keys():
+            f_shape = list(self.f[k].shape)
+            assert f_shape == o_shape, 'Shape mismatch: f[{}] ({}) and o ({})'.format(k, f_shape, o_shape)
         
         assert 'mu' in self.f.keys()
         assert 'sigma' in self.f.keys()

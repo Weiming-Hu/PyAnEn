@@ -65,8 +65,3 @@ class VerifyDeterm(Verify):
         f_shape, o_shape = list(self.f.shape), list(self.o.shape)
         assert f_shape == o_shape, 'Shape mismatch: f ({}) and o ({})'.format(f_shape, o_shape)
     
-    def __str__(self):
-        msg = super().__str__()
-        msg += '\nForecasts (f): {}'.format(self.f.shape)
-        msg += '\nObservations (o): {}'.format(self.o.shape)
-        return msg

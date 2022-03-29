@@ -210,8 +210,8 @@ class VerifyEnsemble(Verify):
     def _collapse_ensembles(self):
         self.f_collapsed = self.ensemble_collapse_func(self.f, axis=self.ensemble_axis)
     
-    def __str__(self):
-        msg = super().__str__()
+    def __repr__(self):
+        msg = super().__repr__()
         msg += '\nEnsemble axis (ensemble_axis): {}'.format(self.ensemble_axis)
         msg += '\nEnsemble collapsing function (ensemble_collapse_func): {}'.format(self.ensemble_collapse_func.__name__)
         return msg

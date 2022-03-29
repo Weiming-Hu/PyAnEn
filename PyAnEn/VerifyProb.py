@@ -185,8 +185,8 @@ class VerifyProb(Verify):
         self._validate_clip_member_to_zero()
         self._validate_truncation()
     
-    def __str__(self):
-        msg = super().__str__()
+    def __repr__(self):
+        msg = super().__repr__()
         msg += '\nEnsemble members to sample (n_sample_members): {}'.format(self.n_sample_members)
         msg += '\nMove generated ensemble axis to (move_sampled_ens_axis): {}'.format(self.move_sampled_ens_axis)
         msg += '\nTruncated (truncated): {}'.format(self.truncated)

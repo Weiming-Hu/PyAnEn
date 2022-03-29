@@ -241,7 +241,7 @@ class Verify:
         metric = self._metric_workflow_1(save_name, func, **kwargs)
         return post_func(metric)
     
-    def __str__(self):
+    def __repr__(self):
         msg = '=============== PyAnEn::{} ==============='.format(type(self).__name__)
         
         if hasattr(self, 'f'):

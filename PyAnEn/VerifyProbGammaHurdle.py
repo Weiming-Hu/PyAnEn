@@ -67,14 +67,14 @@ class VerifyProbGammaHurdle(VerifyProb):
         assert not self.truncated, 'Truncation is currently not implemented.'
         
     def _prob_to_variance(self):
-        return integrate(verifier=self, type='variance', nbins=self.n_approx_bins, integration_range=None)
+        return integrate(verifier=self, type='variance', nbins=self.n_approx_bins, integration_range=self.integration_range)
     
     def _cdf(self, over=None, below=None):
         return cdf_gamma_hurdle(self.f['pop'], self.f['mu'], self.f['sigma'], over=over, below=below)
     
     def _prob_to_determ(self):
-        return integrate(verifier=self, type='mean', nbins=self.n_approx_bins, integration_range=None)
+        return integrate(verifier=self, type='mean', nbins=self.n_approx_bins, integration_range=self.integration_range)
     
     def _crps(self):
-        return integrate(verifier=self, type='brier', nbins=self.n_approx_bins, integration_range=None)
+        return integrate(verifier=self, type='brier', nbins=self.n_approx_bins, integration_range=self.integration_range)
     

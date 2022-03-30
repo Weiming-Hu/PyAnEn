@@ -153,7 +153,10 @@ class VerifyProb(Verify):
         return iou_prob(f_prob, o_binary, axis=self.avg_axis, over=over[1], below=below[1])
     
     def _pit(self):
-        ranks = self.cdf(over=None, below=self.o)
+        # Call the private functions of CDF because results should not be automatically saved
+        # when an array, rather than a scalar, is used as the threshold (below / over). 
+        #
+        ranks = self._cdf(over=None, below=self.o)
         
         if self.pit_randomize_zero_ranks:
             mask = self.o == 0

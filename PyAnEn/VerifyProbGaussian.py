@@ -51,10 +51,10 @@ class VerifyProbGaussian(VerifyProb):
         assert 'mu' in self.f.keys()
         assert 'sigma' in self.f.keys()
         
-    def _prob_to_determ(self):
+    def _f_determ(self):
         return np.copy(self.f['mu'])
     
-    def _prob_to_variance(self):
+    def _variance(self):
         return self.f['sigma'] ** 2
     
     def _prob_to_ens(self):

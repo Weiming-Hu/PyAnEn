@@ -41,8 +41,13 @@ def _get_integration_range(verifier, nbins):
     return np.linspace(integration_min, integration_max, nbins)
 
 
-# Wrapper functions for parallelization
+# Wrapper functions for parallelizing CDF
 def wrapper_cdf(x, verifier): return verifier.cdf(below=x)
+
+# Wrapper function for parallelizing Brier.
+# Not using the public function call because brier scores need not to be aggregated.
+# Intermediately saved results can still be used because _brier will call cdf that relies on saved data.
+#
 def wrapper_brier(x, verifier): return verifier._metric_workflow_1('_'.join(['brier', str(None), str(x)]), verifier._brier, over=None, below=x)
 
 

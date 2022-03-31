@@ -60,6 +60,9 @@ class VerifyEnsemble(Verify):
         self._validate()
         return self
     
+    def ens_to_prob(self, over=None, below=None):
+        return self._metric_workflow_1('_'.join(['ens_to_prob', str(over), str(below)]), self._ens_to_prob, over=over, below=below)
+    
     ###################
     # Private Methods #
     ###################
@@ -109,7 +112,7 @@ class VerifyEnsemble(Verify):
             return np.max(self.f, axis=self.ensemble_axis) - np.min(self.f, axis=self.ensemble_axis)
     
     def _brier(self, over=None, below=None):
-        brier = self._ens_to_prob(over=over, below=below) - binarize_obs(self.o, over=over, below=below)
+        brier = self.ens_to_prob(over=over, below=below) - binarize_obs(self.o, over=over, below=below)
         return brier ** 2
     
     def _variance(self):
@@ -118,6 +121,8 @@ class VerifyEnsemble(Verify):
     def _binned_spread_skill(self, nbins=15):
         
         # Calculate variances and squared errors
+        # Not using the public calls (self.variance and self.ab_error) because no aggregation is needed!
+        #
         variance = self._metric_workflow_1('variance', self._variance)
         ab_error = self._metric_workflow_1('ab_error', self._ab_error)
         
@@ -126,7 +131,7 @@ class VerifyEnsemble(Verify):
     def _reliability(self, nbins=15, over=None, below=None):
         
         # Calculate forecasted probability and binarized observations
-        f_prob = self._ens_to_prob(over=over, below=below)
+        f_prob = self.ens_to_prob(over=over, below=below)
         o_binary = binarize_obs(self.o, over=over, below=below)
         
         return _reliability_split(f_prob, o_binary, nbins)
@@ -134,13 +139,13 @@ class VerifyEnsemble(Verify):
     def _roc(self, over=None, below=None):
         
         # Calculate forecasted probability and binarized observations
-        f_prob = self._ens_to_prob(over=over, below=below)
+        f_prob = self.ens_to_prob(over=over, below=below)
         o_binary = binarize_obs(self.o, over=over, below=below)
         
         return calculate_roc(f_prob, o_binary)
     
     def _sharpness(self, over=None, below=None):
-        return self._ens_to_prob(over=over, below=below)
+        return self.ens_to_prob(over=over, below=below)
     
     def _iou_determ(self, over=None, below=None):
         return iou_determ(self.f_collapsed, self.o, axis=self.avg_axis, over=over, below=below)
@@ -151,7 +156,7 @@ class VerifyEnsemble(Verify):
         assert isinstance(below, tuple) or isinstance(below, list)
         assert len(over) == 2 or len(below) == 2
         
-        f_prob = self._ens_to_prob(over=over[0], below=below[0])
+        f_prob = self.ens_to_prob(over=over[0], below=below[0])
         o_binary = binarize_obs(self.o, over=over[0], below=below[0])
         
         return iou_prob(f_prob, o_binary, axis=self.avg_axis, over=over[1], below=below[1])
@@ -162,8 +167,7 @@ class VerifyEnsemble(Verify):
     ###### Other Methods ######
     
     def _ens_to_prob(self, over=None, below=None):
-        f_prob_func = partial(ens_to_prob, f=self.f, ensemble_aixs=self.ensemble_axis, over=over, below=below)
-        return self._metric_workflow_1('_'.join(['ens_to_prob', str(over), str(below)]), f_prob_func)
+        return ens_to_prob(f=self.f, ensemble_aixs=self.ensemble_axis, over=over, below=below)
     
     def _guess_ensemble_axis(self):
         

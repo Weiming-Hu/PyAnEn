@@ -43,9 +43,15 @@ class VerifyProb(Verify):
         
         super().__init__(avg_axis, boot_samples, working_directory, start_from_scratch)
     
+    def prob_to_ens(self):
+        return self._metric_workflow_1('prob_to_ens', self._prob_to_ens)
+    
+    def pit(self):
+        return self._metric_workflow_1('pit', self._pit)
+    
     def _crps(self): raise NotImplementedError
-    def _prob_to_determ(self): raise NotImplementedError
-    def _prob_to_variance(self): raise NotImplementedError
+    def _variance(self): raise NotImplementedError
+    def _f_determ(self): raise NotImplementedError
     def _prob_to_ens(self): raise NotImplementedError
     def _cdf(self, over=None, below=None): raise NotImplementedError
     
@@ -79,29 +85,26 @@ class VerifyProb(Verify):
     
     ###### Metric Methods ######
     
-    def _f_determ(self):
-        return self._prob_to_determ()
-    
     def _error(self):
-        return self._prob_to_determ() - self.o
+        return self.f_determ() - self.o
     
     def _sq_error(self):
-        return (self._prob_to_determ() - self.o) ** 2
+        return (self.f_determ() - self.o) ** 2
     
     def _ab_error(self):
-        return np.abs(self._prob_to_determ() - self.o)
+        return np.abs(self.f_determ() - self.o)
     
     def _rank_hist(self):
         if self.n_sample_members is None:
             # Use probability integral transform
-            return self._pit()
+            return self.pit()
         
         else:
             # Use random sampling
-            return rank_histogram(f=self._prob_to_ens(), o=self.o, ensemble_axis=-1)
+            return rank_histogram(f=self.prob_to_ens(), o=self.o, ensemble_axis=-1)
     
     def _spread(self):
-        ens = self._prob_to_ens()
+        ens = self.prob_to_ens()
         if util.strtobool(os.environ['pyanen_skip_nan']):
             return np.nanmax(ens, axis=-1) - np.nanmin(ens, axis=-1)
         else:
@@ -114,8 +117,10 @@ class VerifyProb(Verify):
     def _binned_spread_skill(self, nbins=15):
         
         # Calculate variances and squared errors
+        # Not using the public calls (self.variance and self.ab_error) because no aggregation is needed!
+        #
         ab_error = self._metric_workflow_1('ab_error', self._ab_error)
-        variance = self._metric_workflow_1('variance', self._prob_to_variance)
+        variance = self._metric_workflow_1('variance', self._variance)
         
         return _binned_spread_skill_create_split(variance, ab_error, nbins=nbins, sample_axis=self.avg_axis)
     
@@ -139,7 +144,7 @@ class VerifyProb(Verify):
         return self.cdf(over=over, below=below)
     
     def _iou_determ(self, over=None, below=None):
-        return iou_determ(self._prob_to_determ(), self.o, axis=self.avg_axis, over=over, below=below)
+        return iou_determ(self.f_determ(), self.o, axis=self.avg_axis, over=over, below=below)
     
     def _iou_prob(self, over=(None, None), below=(None, None)):
         
@@ -156,7 +161,7 @@ class VerifyProb(Verify):
         # Call the private functions of CDF because results should not be automatically saved
         # when an array, rather than a scalar, is used as the threshold (below / over). 
         #
-        ranks = self._cdf(over=None, below=self.o)
+        ranks = self.cdf(over=None, below=self.o)
         
         if self.pit_randomize_zero_ranks:
             mask = self.o == 0

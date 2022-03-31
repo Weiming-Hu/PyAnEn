@@ -39,6 +39,7 @@ class Verify:
     def _error(self): raise NotImplementedError
     def _sq_error(self): raise NotImplementedError
     def _ab_error(self): raise NotImplementedError
+    def _variance(self): raise NotImplementedError
     def _crps(self): raise NotImplementedError
     def _rank_hist(self): raise NotImplementedError
     def _spread(self): raise NotImplementedError
@@ -56,9 +57,10 @@ class Verify:
     # Metric Methods #
     ##################
     
-    def f_determ(self):return self._f_determ()
+    def f_determ(self): return self._f_determ()
     
     def rank_hist(self, save_name='rank'): return self._metric_workflow_1(save_name, self._rank_hist)
+    def variance(self, save_name='variance'): return self._metric_workflow_1(save_name, self._variance)
     def roc(self, over=None, below=None, save_name='roc'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._roc, over=over, below=below)
     def sharpness(self, over=None, below=None, save_name='sharpness'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._sharpness, over=over, below=below)
     def iou_determ(self, over=None, below=None, save_name='iou_determ'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._iou_determ, over=over, below=below)

@@ -59,7 +59,7 @@ class Integration:
         self.pbar_kws = {
             'disable': util.strtobool(os.environ['pyanen_tqdm_disable']) if disable_pbar is None else disable_pbar,
             'leave': util.strtobool(os.environ['pyanen_tqdm_leave']) if leave_pbar is None else leave_pbar,
-            'desc': 'Integrating {}'.format(type) if pbar_desc is None else pbar_desc,
+            'total': self.nbins,
         }
         
         self.cores = int(os.environ['pyanen_tqdm_workers']) if workers is None else workers
@@ -79,11 +79,12 @@ class Integration:
     ###################
         
     def _crps(self):
+        desc = 'Integrating CRPS'
         wrapper = partial(wrapper_brier, verifier=self.verifier, memmap_arr=self.memmap_arr_w)
         iterables = enumerate(self.seq_x) if self.less_memory else self.seq_x
         
-        if self.cores == 1: brier = np.array([wrapper(_x) for _x in tqdm(iterables, **self.pbar_kws)])
-        else: brier = np.array(thread_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws))
+        if self.cores == 1: brier = np.array([wrapper(_x) for _x in tqdm(iterables, **self.pbar_kws, desc=desc)])
+        else: brier = np.array(thread_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws, desc=desc))
         
         # Calculate difference
         dx = (self.seq_x[1:] - self.seq_x[:-1]).reshape(self.nbins - 1, *(len(self.verifier.o.shape) * [1]))
@@ -98,11 +99,12 @@ class Integration:
     def _mean(self):
         # Reference: https://math.berkeley.edu/~scanlon/m16bs04/ln/16b2lec30.pdf
         
+        desc = 'Integrating mean'
         wrapper = partial(wrapper_cdf, verifier=self.verifier, memmap_arr=self.memmap_arr_w)
         iterables = enumerate(self.seq_x) if self.less_memory else self.seq_x
         
-        if self.cores == 1: cdf = np.array([wrapper(_x) for _x in tqdm(iterables, **self.pbar_kws)])
-        else: cdf = np.array(thread_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws))
+        if self.cores == 1: cdf = np.array([wrapper(_x) for _x in tqdm(iterables, **self.pbar_kws, desc=desc)])
+        else: cdf = np.array(thread_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws, desc=desc))
         
         # Calculate difference
         x = self.seq_x.reshape(self.nbins, *(len(self.verifier.o.shape) * [1]))
@@ -118,12 +120,12 @@ class Integration:
     def _variance(self):
         # Reference: https://math.berkeley.edu/~scanlon/m16bs04/ln/16b2lec30.pdf
         
-        # Calculate CDF at bins
+        desc = 'Integrating variance'
         wrapper = partial(wrapper_cdf, verifier=self.verifier, memmap_arr=self.memmap_arr_w)
         iterables = enumerate(self.seq_x) if self.less_memory else self.seq_x
         
-        if self.cores == 1: cdf = np.array([wrapper(_x) for _x in tqdm(iterables, **self.pbar_kws)])
-        else: cdf = np.array(thread_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws))
+        if self.cores == 1: cdf = np.array([wrapper(_x) for _x in tqdm(iterables, **self.pbar_kws, desc=desc)])
+        else: cdf = np.array(thread_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws, desc=desc))
         
         # Calculate difference
         x = self.seq_x.reshape(self.nbins, *(len(self.verifier.o.shape) * [1]))
@@ -204,15 +206,14 @@ class Integration:
             
         self.seq_x = np.linspace(self.integration_range[0], self.integration_range[1], self.nbins)
     
-    @staticmethod
-    def _memmap_sum_mul(arr, mul, dtype):
+    def _memmap_sum_mul(self, arr, mul, dtype):
         
         assert arr.shape[0] == mul.shape[0], 'Assert {} == {}'.format(arr.shape[0], mul.shape[0])
         assert len(arr.shape) == len(mul.shape), 'Assert {} == {}'.format(len(arr.shape), len(mul.shape))
     
         out = np.full(shape=arr.shape[1:], fill_value=0, dtype=dtype)
         
-        for i in range(arr.shape[0]):
+        for i in tqdm(range(arr.shape[0]), desc='Aggregating memmap', **self.pbar_kws):
             out += arr[i] * mul[i]
             
         return out

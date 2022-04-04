@@ -86,10 +86,3 @@ def test_batch_variance():
 def test_parallel():
     os.environ['pyanen_tqdm_workers'] = '2'
     test_batch_variance()
-
-
-def test_sum_mul():
-    o = np.random.rand(10, 20, 30)
-    ret1 = o.sum(axis=0)
-    ret2 = Integration._memmap_sum_mul(o, np.full(o.shape, 1), o.dtype)
-    assert np.abs(ret2 - ret1).mean() < 1e-5

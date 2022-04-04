@@ -161,7 +161,7 @@ class VerifyProb(Verify):
         # Call the private functions of CDF because results should not be automatically saved
         # when an array, rather than a scalar, is used as the threshold (below / over). 
         #
-        ranks = self.cdf(over=None, below=self.o)
+        ranks = self._cdf(over=None, below=self.o)
         
         if self.pit_randomize_zero_ranks:
             mask = self.o == 0

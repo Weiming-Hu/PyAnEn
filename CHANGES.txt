@@ -1,9 +1,10 @@
-# PyAnEn 0.4.5
+# PyAnEn 0.4.6
 
 - Added verification for Gamma hurdle model
 - Simplified CDF calculation for `below` and `over`
 - Abstract classes do not deal with actual data.
 - Make saving consistent across different classes
+- Add memory efficient option for Integration class
 
 # PyAnEn 0.3.10
 

@@ -18,7 +18,7 @@ import numpy as np
 
 from .VerifyProb import VerifyProb
 from .utils_dist import cdf_gamma_hurdle
-from .utils_approximation import integrate
+from .utils_approximation import Integration
 
 
 class VerifyProbGammaHurdle(VerifyProb):
@@ -67,14 +67,14 @@ class VerifyProbGammaHurdle(VerifyProb):
         assert not self.truncated, 'Truncation is currently not implemented.'
         
     def _variance(self):
-        return integrate(verifier=self, type='variance', nbins=self.n_approx_bins, integration_range=self.integration_range)
+        return Integration(verifier=self, integration_range=self.integration_range, nbins=self.n_approx_bins).variance()
     
     def _cdf(self, over=None, below=None):
         return cdf_gamma_hurdle(self.f['pop'], self.f['mu'], self.f['sigma'], over=over, below=below)
     
     def _f_determ(self):
-        return integrate(verifier=self, type='mean', nbins=self.n_approx_bins, integration_range=self.integration_range)
+        return Integration(verifier=self, integration_range=self.integration_range, nbins=self.n_approx_bins).mean()
     
     def _crps(self):
-        return integrate(verifier=self, type='brier', nbins=self.n_approx_bins, integration_range=self.integration_range)
+        return Integration(verifier=self, integration_range=self.integration_range, nbins=self.n_approx_bins).crps()
     

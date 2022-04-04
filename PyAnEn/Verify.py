@@ -243,9 +243,6 @@ class Verify:
         metric = self._metric_workflow_1(save_name, func, **kwargs)
         return post_func(metric)
     
-    def __str__(self):
-        return 'PyAnEn::{}'.format(type(self).__name__)
-    
     def __repr__(self):
         msg = '=============== PyAnEn::{} ==============='.format(type(self).__name__)
         

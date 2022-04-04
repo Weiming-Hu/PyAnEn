@@ -189,6 +189,9 @@ class Integration:
     def _resume_sublevel_tqdm(self):
         assert self.tqdm_backup is not None, 'Resume function called before calling the suppressing function!'
         
+        for k, v in self.tqdm_backup.items():
+            os.environ[k] = str(v)
+        
     def _define_integration_range(self):
         
         if self.integration_range is None:

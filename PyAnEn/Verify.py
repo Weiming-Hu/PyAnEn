@@ -57,10 +57,9 @@ class Verify:
     # Metric Methods #
     ##################
     
-    def f_determ(self): return self._f_determ()
-    
     def rank_hist(self, save_name='rank'): return self._metric_workflow_1(save_name, self._rank_hist)
     def variance(self, save_name='variance'): return self._metric_workflow_1(save_name, self._variance)
+    def f_determ(self, save_name='f_determ'): return self._metric_workflow_1(save_name, self._f_determ)
     def roc(self, over=None, below=None, save_name='roc'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._roc, over=over, below=below)
     def sharpness(self, over=None, below=None, save_name='sharpness'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._sharpness, over=over, below=below)
     def iou_determ(self, over=None, below=None, save_name='iou_determ'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._iou_determ, over=over, below=below)

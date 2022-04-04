@@ -59,7 +59,6 @@ class Integration:
         self.pbar_kws = {
             'disable': util.strtobool(os.environ['pyanen_tqdm_disable']) if disable_pbar is None else disable_pbar,
             'leave': util.strtobool(os.environ['pyanen_tqdm_leave']) if leave_pbar is None else leave_pbar,
-            'total': self.nbins,
         }
         
         self.cores = int(os.environ['pyanen_tqdm_workers']) if workers is None else workers
@@ -83,8 +82,8 @@ class Integration:
         wrapper = partial(wrapper_brier, verifier=self.verifier, memmap_arr=self.memmap_arr_w)
         iterables = enumerate(self.seq_x) if self.less_memory else self.seq_x
         
-        if self.cores == 1: brier = np.array([wrapper(_x) for _x in tqdm(iterables, **self.pbar_kws, desc=desc)])
-        else: brier = np.array(thread_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws, desc=desc))
+        if self.cores == 1: brier = np.array([wrapper(_x) for _x in tqdm(iterables, **self.pbar_kws, desc=desc, total=self.nbins)])
+        else: brier = np.array(thread_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws, desc=desc, total=self.nbins))
         
         # Calculate difference
         dx = (self.seq_x[1:] - self.seq_x[:-1]).reshape(self.nbins - 1, *(len(self.verifier.o.shape) * [1]))
@@ -103,8 +102,8 @@ class Integration:
         wrapper = partial(wrapper_cdf, verifier=self.verifier, memmap_arr=self.memmap_arr_w)
         iterables = enumerate(self.seq_x) if self.less_memory else self.seq_x
         
-        if self.cores == 1: cdf = np.array([wrapper(_x) for _x in tqdm(iterables, **self.pbar_kws, desc=desc)])
-        else: cdf = np.array(thread_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws, desc=desc))
+        if self.cores == 1: cdf = np.array([wrapper(_x) for _x in tqdm(iterables, **self.pbar_kws, desc=desc, total=self.nbins)])
+        else: cdf = np.array(thread_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws, desc=desc, total=self.nbins))
         
         # Calculate difference
         x = self.seq_x.reshape(self.nbins, *(len(self.verifier.o.shape) * [1]))
@@ -124,8 +123,8 @@ class Integration:
         wrapper = partial(wrapper_cdf, verifier=self.verifier, memmap_arr=self.memmap_arr_w)
         iterables = enumerate(self.seq_x) if self.less_memory else self.seq_x
         
-        if self.cores == 1: cdf = np.array([wrapper(_x) for _x in tqdm(iterables, **self.pbar_kws, desc=desc)])
-        else: cdf = np.array(thread_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws, desc=desc))
+        if self.cores == 1: cdf = np.array([wrapper(_x) for _x in tqdm(iterables, **self.pbar_kws, desc=desc, total=self.nbins)])
+        else: cdf = np.array(thread_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws, desc=desc, total=self.nbins))
         
         # Calculate difference
         x = self.seq_x.reshape(self.nbins, *(len(self.verifier.o.shape) * [1]))
@@ -213,7 +212,7 @@ class Integration:
     
         out = np.full(shape=arr.shape[1:], fill_value=0, dtype=dtype)
         
-        for i in tqdm(range(arr.shape[0]), desc='Aggregating memmap', **self.pbar_kws):
+        for i in tqdm(range(arr.shape[0]), desc='Aggregating memmap', **self.pbar_kws, total=arr.shape[0]):
             out += arr[i] * mul[i]
             
         return out

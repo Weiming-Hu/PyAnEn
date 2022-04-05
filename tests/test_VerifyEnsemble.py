@@ -59,8 +59,8 @@ def test_ens_to_prob():
     
     verify = VerifyEnsemble(f, o)
     assert verify.ensemble_axis == 0
-    f_over = verify._ens_to_prob(over=18)
-    f_below = verify._ens_to_prob(below=18)
+    f_over = verify.cdf(over=18)
+    f_below = verify.cdf(below=18)
     assert np.count_nonzero(np.abs(f_over + f_below - 1) < 1e-2) > 0.9
 
 
@@ -92,11 +92,13 @@ def test_spread_skill():
 def test_brier():
     verify = VerifyEnsemble(f, o, working_directory=os.path.expanduser('~/github/PyAnEn/tmp'))
     br = verify.brier(over=16.5)
-    assert os.path.exists(os.path.expanduser('~/github/PyAnEn/tmp/brier_16.5_None.pkl'))
-    assert os.path.exists(os.path.expanduser('./tmp/ens_to_prob_16.5_None.pkl'))
+    assert os.path.exists('./tmp/brier_16.5_None.pkl')
+    assert os.path.exists('./tmp/cdf_16.5_None.pkl')
+    assert os.path.exists('./tmp/cdf_None_16.5.pkl')
     br = verify.brier(over=16.5)
-    os.remove('./tmp/ens_to_prob_16.5_None.pkl')
     os.remove('./tmp/brier_16.5_None.pkl')
+    os.remove('./tmp/cdf_16.5_None.pkl')
+    os.remove('./tmp/cdf_None_16.5.pkl')
     os.rmdir('./tmp')
 
 

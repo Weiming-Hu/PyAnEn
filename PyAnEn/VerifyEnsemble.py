@@ -21,7 +21,6 @@ import properscoring as ps
 from distutils import util
 from tqdm.auto import tqdm
 from .Verify import Verify
-from functools import partial
 from .utils_verify import iou_prob
 from .utils_verify import iou_determ
 from .utils_verify import ens_to_prob
@@ -59,9 +58,6 @@ class VerifyEnsemble(Verify):
         self.ensemble_collapse_func = func
         self._validate()
         return self
-    
-    def ens_to_prob(self, over=None, below=None):
-        return self._metric_workflow_1('_'.join(['ens_to_prob', str(over), str(below)]), self._ens_to_prob, over=over, below=below)
     
     ###################
     # Private Methods #
@@ -112,7 +108,7 @@ class VerifyEnsemble(Verify):
             return np.max(self.f, axis=self.ensemble_axis) - np.min(self.f, axis=self.ensemble_axis)
     
     def _brier(self, over=None, below=None):
-        brier = self.ens_to_prob(over=over, below=below) - binarize_obs(self.o, over=over, below=below)
+        brier = self.cdf(over=over, below=below) - binarize_obs(self.o, over=over, below=below)
         return brier ** 2
     
     def _variance(self):
@@ -131,7 +127,7 @@ class VerifyEnsemble(Verify):
     def _reliability(self, nbins=15, over=None, below=None):
         
         # Calculate forecasted probability and binarized observations
-        f_prob = self.ens_to_prob(over=over, below=below)
+        f_prob = self.cdf(over=over, below=below)
         o_binary = binarize_obs(self.o, over=over, below=below)
         
         return _reliability_split(f_prob, o_binary, nbins)
@@ -139,13 +135,13 @@ class VerifyEnsemble(Verify):
     def _roc(self, over=None, below=None):
         
         # Calculate forecasted probability and binarized observations
-        f_prob = self.ens_to_prob(over=over, below=below)
+        f_prob = self.cdf(over=over, below=below)
         o_binary = binarize_obs(self.o, over=over, below=below)
         
         return calculate_roc(f_prob, o_binary)
     
     def _sharpness(self, over=None, below=None):
-        return self.ens_to_prob(over=over, below=below)
+        return self.cdf(over=over, below=below)
     
     def _iou_determ(self, over=None, below=None):
         return iou_determ(self.f_collapsed, self.o, axis=self.avg_axis, over=over, below=below)
@@ -156,18 +152,17 @@ class VerifyEnsemble(Verify):
         assert isinstance(below, tuple) or isinstance(below, list)
         assert len(over) == 2 or len(below) == 2
         
-        f_prob = self.ens_to_prob(over=over[0], below=below[0])
+        f_prob = self.cdf(over=over[0], below=below[0])
         o_binary = binarize_obs(self.o, over=over[0], below=below[0])
         
         return iou_prob(f_prob, o_binary, axis=self.avg_axis, over=over[1], below=below[1])
     
     def _cdf(self, over=None, below=None):
-        return ens_to_prob(self.f, ensemble_aixs=self.ensemble_axis, over=over, below=below)
+        assert (over is None) ^ (below is None), 'Must specify over or below'
+        if below is None: return 1 - self.cdf(below=over)
+        else: return ens_to_prob(self.f, ensemble_aixs=self.ensemble_axis, over=over, below=below)
     
     ###### Other Methods ######
-    
-    def _ens_to_prob(self, over=None, below=None):
-        return ens_to_prob(f=self.f, ensemble_aixs=self.ensemble_axis, over=over, below=below)
     
     def _guess_ensemble_axis(self):
         

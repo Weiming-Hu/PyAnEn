@@ -165,43 +165,38 @@ def sample_dist_gamma(unshifted_mu, sigma, shift, n_sample_members=15, move_axis
 # Functions to calculate CDF #
 ##############################
 
-def cdf_gaussian(mu, sigma, over=None, below=None, truncated=False):
+def cdf_gaussian(mu, sigma, below, truncated=False):
         
     assert isinstance(truncated, bool)
-    assert (over is None) ^ (below is None), 'Must specify over or below'
     
-    if below is None:
-        return 1 - cdf_gaussian(mu, sigma, over=None, below=over, truncated=truncated)
+    cores = int(os.environ['pyanen_tqdm_workers'])        
+    
+    if isinstance(below, np.ndarray):
+        assert below.shape == mu.shape
+    elif isinstance(below, np.float) or isinstance(below, np.int):
+        below = np.full(mu.shape, below)
+    else:
+        raise RuntimeError('below should be either a scalar or an Numpy array. Got {}'.format(type(below)))
+    
+    if cores == 1:
+        if truncated:
+            probs = stats.truncnorm.cdf(x=below, loc=mu, scale=sigma, a=-mu/sigma, b=_LARGE_NUMBER_)
+        else:
+            probs = stats.norm.cdf(x=below, loc=mu, scale=sigma)
     
     else:
-        cores = int(os.environ['pyanen_tqdm_workers'])        
+        parallelize_axis = int(os.environ['pyanen_tqdm_map_axis'])
+
+        iterable = zip(
+            np.split(mu, mu.shape[parallelize_axis], parallelize_axis),
+            np.split(sigma, sigma.shape[parallelize_axis], parallelize_axis),
+            np.split(below, below.shape[parallelize_axis], parallelize_axis),
+        )
         
-        if isinstance(below, np.ndarray):
-            assert below.shape == mu.shape
-        elif isinstance(below, np.float) or isinstance(below, np.int):
-            below = np.full(mu.shape, below)
+        if truncated:
+            probs = _parallel_process(wrapper_truncnorm_cdf, iterable, total=mu.shape[parallelize_axis], name='truncnorm.cdf' if truncated else 'norm.cdf')
         else:
-            raise RuntimeError('below should be either a scalar or an Numpy array. Got {}'.format(type(below)))
-        
-        if cores == 1:
-            if truncated:
-                probs = stats.truncnorm.cdf(x=below, loc=mu, scale=sigma, a=-mu/sigma, b=_LARGE_NUMBER_)
-            else:
-                probs = stats.norm.cdf(x=below, loc=mu, scale=sigma)
-        
-        else:
-            parallelize_axis = int(os.environ['pyanen_tqdm_map_axis'])
-    
-            iterable = zip(
-                np.split(mu, mu.shape[parallelize_axis], parallelize_axis),
-                np.split(sigma, sigma.shape[parallelize_axis], parallelize_axis),
-                np.split(below, below.shape[parallelize_axis], parallelize_axis),
-            )
-            
-            if truncated:
-                probs = _parallel_process(wrapper_truncnorm_cdf, iterable, total=mu.shape[parallelize_axis], name='truncnorm.cdf' if truncated else 'norm.cdf')
-            else:
-                probs = _parallel_process(wrapper_norm_cdf, iterable, total=mu.shape[parallelize_axis], name='truncnorm.cdf' if truncated else 'norm.cdf')
+            probs = _parallel_process(wrapper_norm_cdf, iterable, total=mu.shape[parallelize_axis], name='truncnorm.cdf' if truncated else 'norm.cdf')
             
     probs[probs < 0] = 0
     probs[probs > 1] = 1
@@ -209,48 +204,42 @@ def cdf_gaussian(mu, sigma, over=None, below=None, truncated=False):
     return probs
 
 
-def cdf_gamma(unshifted_mu, sigma, shift, over=None, below=None, truncated=False):
+def cdf_gamma(unshifted_mu, sigma, shift, below, truncated=False):
     
-    assert (over is None) ^ (below is None), 'Must specify over or below'
+    cores = int(os.environ['pyanen_tqdm_workers'])
     
-    if below is None:
-        return 1 - cdf_gamma(unshifted_mu, sigma, shift, over=None, below=over, truncated=truncated)
-    
+    # Calculate distribution parameters
+    shape = (unshifted_mu / sigma) ** 2
+    scale = sigma ** 2 / unshifted_mu
+        
+    if isinstance(below, np.ndarray):
+        assert below.shape == shape.shape
+    elif isinstance(below, np.float) or isinstance(below, np.int):
+        below = np.full(shape.shape, below)
     else:
-        cores = int(os.environ['pyanen_tqdm_workers'])
-        
-        # Calculate distribution parameters
-        shape = (unshifted_mu / sigma) ** 2
-        scale = sigma ** 2 / unshifted_mu
-            
-        if isinstance(below, np.ndarray):
-            assert below.shape == shape.shape
-        elif isinstance(below, np.float) or isinstance(below, np.int):
-            below = np.full(shape.shape, below)
+        raise RuntimeError('below should be either a scalar or an Numpy array. Got {}'.format(type(below)))
+    
+    if cores == 1:
+        if truncated:
+            probs = truncgamma_gen().cdf(x=below, a=(-shift)/scale, b=_LARGE_NUMBER_, s=shape, loc=shift, scale=scale)
         else:
-            raise RuntimeError('below should be either a scalar or an Numpy array. Got {}'.format(type(below)))
+            probs = stats.gamma.cdf(x=below, a=shape, loc=shift, scale=scale)
+            
+    else:
         
-        if cores == 1:
-            if truncated:
-                probs = truncgamma_gen().cdf(x=below, a=(-shift)/scale, b=_LARGE_NUMBER_, s=shape, loc=shift, scale=scale)
-            else:
-                probs = stats.gamma.cdf(x=below, a=shape, loc=shift, scale=scale)
-                
+        parallelize_axis = int(os.environ['pyanen_tqdm_map_axis'])
+        
+        iterable = zip(
+            np.split(shape, shape.shape[parallelize_axis], parallelize_axis),
+            np.split(scale, scale.shape[parallelize_axis], parallelize_axis),
+            np.split(shift, shift.shape[parallelize_axis], parallelize_axis),
+            np.split(below, below.shape[parallelize_axis], parallelize_axis),
+        )
+        
+        if truncated:
+            probs = _parallel_process(wrapper_truncgamma_cdf, iterable, total=shape.shape[parallelize_axis], name='truncgamma.cdf' if truncated else 'gamma.cdf')
         else:
-            
-            parallelize_axis = int(os.environ['pyanen_tqdm_map_axis'])
-            
-            iterable = zip(
-                np.split(shape, shape.shape[parallelize_axis], parallelize_axis),
-                np.split(scale, scale.shape[parallelize_axis], parallelize_axis),
-                np.split(shift, shift.shape[parallelize_axis], parallelize_axis),
-                np.split(below, below.shape[parallelize_axis], parallelize_axis),
-            )
-            
-            if truncated:
-                probs = _parallel_process(wrapper_truncgamma_cdf, iterable, total=shape.shape[parallelize_axis], name='truncgamma.cdf' if truncated else 'gamma.cdf')
-            else:
-                probs = _parallel_process(wrapper_gamma_cdf, iterable, total=shape.shape[parallelize_axis], name='truncgamma.cdf' if truncated else 'gamma.cdf')
+            probs = _parallel_process(wrapper_gamma_cdf, iterable, total=shape.shape[parallelize_axis], name='truncgamma.cdf' if truncated else 'gamma.cdf')
                 
     probs[probs < 0] = 0
     probs[probs > 1] = 1
@@ -258,47 +247,41 @@ def cdf_gamma(unshifted_mu, sigma, shift, over=None, below=None, truncated=False
     return probs
 
 
-def cdf_gamma_hurdle(pop, mu, sigma, over=None, below=None):
+def cdf_gamma_hurdle(pop, mu, sigma, below):
     # The calculation is as follows:
     #
     # 1 - pop                                  given below=0
     # [1-pop] + pop*CDFgamma(y,shape,scale).   given below>0
     #
     
-    assert (over is None) ^ (below is None), 'Must specify over or below'
+    # Calculate distribution parameters
+    shape = (mu / sigma) ** 2
+    scale = sigma ** 2 / mu
     
-    if below is None:
-        return 1 - cdf_gamma_hurdle(pop, mu, sigma, over=None, below=over)
+    cores = int(os.environ['pyanen_tqdm_workers'])
+        
+    if isinstance(below, np.ndarray):
+        assert below.shape == shape.shape
+    elif isinstance(below, np.float) or isinstance(below, np.int):
+        below = np.full(shape.shape, below)
+    else:
+        raise RuntimeError('below should be either a scalar or an Numpy array. Got {}'.format(type(below)))
     
-    else:    
-        # Calculate distribution parameters
-        shape = (mu / sigma) ** 2
-        scale = sigma ** 2 / mu
+    if cores == 1:
+        probs = wrapper_gamma_hurdle_cdf([pop, shape, scale, below])
+            
+    else:
         
-        cores = int(os.environ['pyanen_tqdm_workers'])
-            
-        if isinstance(below, np.ndarray):
-            assert below.shape == shape.shape
-        elif isinstance(below, np.float) or isinstance(below, np.int):
-            below = np.full(shape.shape, below)
-        else:
-            raise RuntimeError('below should be either a scalar or an Numpy array. Got {}'.format(type(below)))
+        parallelize_axis = int(os.environ['pyanen_tqdm_map_axis'])
         
-        if cores == 1:
-            probs = wrapper_gamma_hurdle_cdf([pop, shape, scale, below])
-                
-        else:
-            
-            parallelize_axis = int(os.environ['pyanen_tqdm_map_axis'])
-            
-            iterable = zip(
-                np.split(pop, pop.shape[parallelize_axis], parallelize_axis),
-                np.split(shape, shape.shape[parallelize_axis], parallelize_axis),
-                np.split(scale, scale.shape[parallelize_axis], parallelize_axis),
-                np.split(below, below.shape[parallelize_axis], parallelize_axis),
-            )
-            
-            probs = _parallel_process(wrapper_gamma_hurdle_cdf, iterable, total=shape.shape[parallelize_axis], name='gammahurdle.cdf')
+        iterable = zip(
+            np.split(pop, pop.shape[parallelize_axis], parallelize_axis),
+            np.split(shape, shape.shape[parallelize_axis], parallelize_axis),
+            np.split(scale, scale.shape[parallelize_axis], parallelize_axis),
+            np.split(below, below.shape[parallelize_axis], parallelize_axis),
+        )
+        
+        probs = _parallel_process(wrapper_gamma_hurdle_cdf, iterable, total=shape.shape[parallelize_axis], name='gammahurdle.cdf')
                 
     probs[probs < 0] = 0
     probs[probs > 1] = 1

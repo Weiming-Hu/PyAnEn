@@ -68,7 +68,9 @@ class VerifyProbGaussian(VerifyProb):
         return ens
     
     def _cdf(self, over=None, below=None):
-        return cdf_gaussian(self.f['mu'], self.f['sigma'], over, below, self.truncated)
+        assert (over is None) ^ (below is None), 'Must specify over or below'
+        if below is None: return 1 - self.cdf(below=over)
+        else: return cdf_gaussian(self.f['mu'], self.f['sigma'], below, self.truncated)
     
     def _crps(self):
         

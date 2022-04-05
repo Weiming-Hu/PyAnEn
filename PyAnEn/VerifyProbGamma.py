@@ -70,7 +70,9 @@ class VerifyProbGamma(VerifyProb):
         return ens
     
     def _cdf(self, over=None, below=None):
-        return cdf_gamma(self.f['unshifted_mu'], self.f['sigma'], self.f['shift'], over, below, truncated=self.truncated)
+        assert (over is None) ^ (below is None), 'Must specify over or below'
+        if below is None: return 1 - self.cdf(below=over)
+        else: return cdf_gamma(self.f['unshifted_mu'], self.f['sigma'], self.f['shift'], below, truncated=self.truncated)
     
     def _crps(self):
         

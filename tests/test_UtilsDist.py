@@ -12,12 +12,12 @@ def test_gaussian():
     init_shape = [10, 20]
     mu = np.random.rand(*init_shape) + 1
     sigma = np.random.rand(*init_shape) + 0.01
-    over = 1
+    below = 1
     
     os.environ['pyanen_tqdm_workers'] = '1'
-    r1 = cdf_gaussian(mu, sigma, over=over)
+    r1 = cdf_gaussian(mu, sigma, below=below)
     os.environ['pyanen_tqdm_workers'] = '4'
-    r2 = cdf_gaussian(mu, sigma, over=over)
+    r2 = cdf_gaussian(mu, sigma, below=below)
     
     assert np.all(r1 == r2)
 
@@ -32,9 +32,9 @@ def test_gamma_hurdle():
     y = np.array([[0, 0], [3, 4]])
     
     
-    r1 = cdf_gamma_hurdle(pop, mu, sigma, over=y)
-    r2 = cdf_gamma_hurdle(pop, mu, sigma, over=0)
-    r3 = cdf_gamma_hurdle(pop, mu, sigma, over=3)
+    r1 = cdf_gamma_hurdle(pop, mu, sigma, below=y)
+    r2 = cdf_gamma_hurdle(pop, mu, sigma, below=0)
+    r3 = cdf_gamma_hurdle(pop, mu, sigma, below=3)
     
     assert r1.shape == r2.shape == pop.shape
     assert r1[0, 0] == r2[0, 0]

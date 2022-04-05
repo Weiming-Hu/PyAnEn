@@ -70,7 +70,9 @@ class VerifyProbGammaHurdle(VerifyProb):
         return Integration(verifier=self, integration_range=self.integration_range, nbins=self.n_approx_bins).variance()
     
     def _cdf(self, over=None, below=None):
-        return cdf_gamma_hurdle(self.f['pop'], self.f['mu'], self.f['sigma'], over=over, below=below)
+        assert (over is None) ^ (below is None), 'Must specify over or below'
+        if below is None: return 1 - self.cdf(below=over)
+        else: return cdf_gamma_hurdle(self.f['pop'], self.f['mu'], self.f['sigma'], below=below)
     
     def _f_determ(self):
         return Integration(verifier=self, integration_range=self.integration_range, nbins=self.n_approx_bins).mean()

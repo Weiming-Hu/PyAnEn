@@ -60,21 +60,21 @@ class Verify:
     def rank_hist(self, save_name='rank'): return self._metric_workflow_1(save_name, self._rank_hist)
     def variance(self, save_name='variance'): return self._metric_workflow_1(save_name, self._variance)
     def f_determ(self, save_name='f_determ'): return self._metric_workflow_1(save_name, self._f_determ)
-    def roc(self, over=None, below=None, save_name='roc'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._roc, over=over, below=below)
-    def sharpness(self, over=None, below=None, save_name='sharpness'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._sharpness, over=over, below=below)
-    def iou_determ(self, over=None, below=None, save_name='iou_determ'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._iou_determ, over=over, below=below)
-    def iou_prob(self, over=None, below=None, save_name='iou_prob'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._iou_prob, over=over, below=below)
-    def cdf(self, over=None, below=None, save_name='cdf'): return self._metric_workflow_1('_'.join([save_name, str(over), str(below)]), self._cdf, over=over, below=below)
+    def roc(self, over=None, below=None, save_name='roc'): return self._metric_workflow_1(self.to_name(save_name, over=over, below=below), self._roc, over=over, below=below)
+    def sharpness(self, over=None, below=None, save_name='sharpness'): return self._metric_workflow_1(self.to_name(save_name, over=over, below=below), self._sharpness, over=over, below=below)
+    def iou_determ(self, over=None, below=None, save_name='iou_determ'): return self._metric_workflow_1(self.to_name(save_name, over=over, below=below), self._iou_determ, over=over, below=below)
+    def iou_prob(self, over=None, below=None, save_name='iou_prob'): return self._metric_workflow_1(self.to_name(save_name, over=over, below=below), self._iou_prob, over=over, below=below)
+    def cdf(self, over=None, below=None, save_name='cdf'): return self._metric_workflow_1(self.to_name(save_name, over=over, below=below), self._cdf, over=over, below=below)
     
     def crps(self, save_name='crps'): return self._metric_workflow_2(save_name, self._crps)
     def error(self, save_name='error'): return self._metric_workflow_2(save_name, self._error)
     def spread(self, save_name='spread'): return self._metric_workflow_2(save_name, self._spread)
     def sq_error(self, save_name='sq_error'): return self._metric_workflow_2(save_name, self._sq_error)
     def ab_error(self, save_name='ab_error'): return self._metric_workflow_2(save_name, self._ab_error)
-    def brier(self, over=None, below=None, save_name='brier'): return self._metric_workflow_2('_'.join([save_name, str(over), str(below)]), self._brier, over=over, below=below)
+    def brier(self, over=None, below=None, save_name='brier'): return self._metric_workflow_2(self.to_name(save_name, over=over, below=below), self._brier, over=over, below=below)
     
-    def reliability(self, nbins=15, over=None, below=None, save_name='rel'): return self._metric_workflow_3('_'.join([save_name, str(nbins), str(over), str(below)]), self._reliability, self.post_reliability, nbins=nbins, over=over, below=below)
-    def binned_spread_skill(self, nbins=15, save_name='ss'): return self._metric_workflow_3('_'.join([save_name, str(nbins)]), self._binned_spread_skill, self.post_binned_spread_skill, nbins=nbins)
+    def reliability(self, nbins=15, over=None, below=None, save_name='rel'): return self._metric_workflow_3(self.to_name(save_name, nbins=nbins, over=over, below=below), self._reliability, self.post_reliability, nbins=nbins, over=over, below=below)
+    def binned_spread_skill(self, nbins=15, save_name='ss'): return self._metric_workflow_3(self.to_name(save_name, nbins=nbins), self._binned_spread_skill, self.post_binned_spread_skill, nbins=nbins)
 
     def rmse(self, save_name='sq_error'):
         return np.sqrt(self.sq_error(save_name=save_name))
@@ -82,11 +82,6 @@ class Verify:
     ##################
     # Static Methods #
     ##################
-    
-    @staticmethod
-    def to_skill_score(f_score, benchmark_score):
-        assert f_score.shape == benchmark_score.shape
-        return 1 - f_score / benchmark_score
     
     @staticmethod
     def reliability_index(freqs):
@@ -140,6 +135,24 @@ class Verify:
     ########################
     # Other Public Methods #
     ########################
+    
+    def to_name(self, save_name, special_keyword='LITERAL_', **kwargs):
+        
+        if isinstance(save_name, str): save_name = save_name.replace(' ', '_')
+        else: return None
+        
+        if save_name[:len(special_keyword)] == special_keyword:
+            return save_name[len(special_keyword):]
+        
+        strs = {}
+        
+        for k, v in kwargs.items():
+            if hasattr(v, '__len__'):
+                if isinstance(v, np.ndarray) and len(v.ravel()) > 5: return None
+                elif len(v) > 5: return None
+            else: strs[k] = str(v).replace(' ', '_')
+        
+        return '_'.join([save_name] + ['{}_{}'.format(k, v) for k, v in strs.items()])
     
     def set_avg_axis(self, x):
         self.avg_axis = x
@@ -210,13 +223,13 @@ class Verify:
         self._validate_saving()
     
     def _save(self, name, arr):
-        if self.working_directory:
+        if self.working_directory and isinstance(name, str):
             path = os.path.join(self.working_directory, name + '.pkl')
             with open(path, 'wb') as f:
                 pickle.dump(arr, f)
         
     def _load(self, name):
-        if self.working_directory:
+        if self.working_directory and isinstance(name, str):
             path = os.path.join(self.working_directory, name + '.pkl')
             
             if os.path.exists(path):

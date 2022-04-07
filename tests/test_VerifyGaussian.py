@@ -1,5 +1,6 @@
 # Set environment variables
 import os
+import glob
 
 os.environ['pyanen_boot_repeats'] = '30'
 
@@ -110,4 +111,44 @@ def test_avg_axis():
              {'mu': f['mu'][:, :, :, [3]], 'sigma': f['sigma'][:, :, :, [3]]},
              {'mu': f['mu'][:, :, :, 3], 'sigma': f['sigma'][:, :, :, 3]}],
             [o, o[:, :, :, [3]], o[:, :, :, 3]], (0, 1, 2), 3, 17, 'first dimension')
+
+def test_saving():
+    
+    # The most basic use case without any saving
+    verify = VerifyProbGaussian(f, o)
+    verify.brier(below=10)
+    
+    # Specify the working directory
+    verify = VerifyProbGaussian(f, o, working_directory='tmp')
+    verify.brier(below=10)
+    assert os.path.exists('tmp/brier_over_None_below_10.pkl')
+    assert os.path.exists('tmp/cdf_over_None_below_10.pkl')
+    os.remove('tmp/brier_over_None_below_10.pkl')
+    os.remove('tmp/cdf_over_None_below_10.pkl')
+    os.removedirs('tmp')
+    
+    verify = VerifyProbGaussian(f, o, working_directory='tmp')
+    verify.brier(below=10, save_name='Happy  ')
+    assert os.path.exists('tmp/Happy___over_None_below_10.pkl')
+    assert os.path.exists('tmp/cdf_over_None_below_10.pkl')
+    os.remove('tmp/Happy___over_None_below_10.pkl')
+    os.remove('tmp/cdf_over_None_below_10.pkl')
+    os.removedirs('tmp')
+    
+    verify = VerifyProbGaussian(f, o, working_directory='tmp')
+    verify.brier(below=np.random.rand(*init_shape))
+    assert len(glob.glob('tmp/*.pkl')) == 0
+    os.removedirs('tmp')
+    
+    verify = VerifyProbGaussian(f, o, working_directory='tmp')
+    verify.brier(below=np.random.rand(*init_shape), save_name='I want this')
+    assert len(glob.glob('tmp/*.pkl')) == 0
+    os.removedirs('tmp')
+    
+    verify = VerifyProbGaussian(f, o, working_directory='tmp')
+    verify.brier(below=np.random.rand(*init_shape), save_name='LITERAL_I want this')
+    assert len(glob.glob('tmp/*.pkl')) == 1
+    assert os.path.exists('tmp/I_want_this.pkl')
+    os.remove('tmp/I_want_this.pkl')
+    os.removedirs('tmp')
     

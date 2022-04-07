@@ -34,8 +34,8 @@ def wrapper_cdf(x, verifier, memmap_arr=None):
 # Intermediately saved results can still be used because _brier will call cdf that relies on saved data.
 #
 def wrapper_brier(x, verifier, memmap_arr=None):
-    if memmap_arr is None: return verifier._metric_workflow_1('_'.join(['brier', str(None), str(x)]), verifier._brier, over=None, below=x)
-    else: memmap_arr[x[0]] = verifier._metric_workflow_1('_'.join(['brier', str(None), str(x)]), verifier._brier, over=None, below=x[1])
+    if memmap_arr is None: return verifier._metric_workflow_1(verifier.to_name('brier', over=None, below=x), verifier._brier, over=None, below=x)
+    else: memmap_arr[x[0]] = verifier._metric_workflow_1(verifier.to_name('brier', over=None, below=x), verifier._brier, over=None, below=x[1])
 
 
 class Integration:

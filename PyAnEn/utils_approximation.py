@@ -35,7 +35,7 @@ def wrapper_cdf(x, verifier, memmap_arr=None):
 #
 def wrapper_brier(x, verifier, memmap_arr=None):
     if memmap_arr is None: return verifier._metric_workflow_1(verifier.to_name('brier', over=None, below=x), verifier._brier, over=None, below=x)
-    else: memmap_arr[x[0]] = verifier._metric_workflow_1(verifier.to_name('brier', over=None, below=x), verifier._brier, over=None, below=x[1])
+    else: memmap_arr[x[0]] = verifier._metric_workflow_1(verifier.to_name('brier', over=None, below=x[1]), verifier._brier, over=None, below=x[1])
 
 
 class Integration:

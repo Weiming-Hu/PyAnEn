@@ -150,8 +150,8 @@ class Verify:
             if hasattr(v, '__len__'):
                 if isinstance(v, np.ndarray) and len(v.ravel()) > 5: return None
                 elif len(v) > 5: return None
-                else: strs[k] = str(v).replace(' ', '_')
-            else: strs[k] = str(v).replace(' ', '_')
+                
+            strs[k] = str(v).replace(' ', '_')
         
         return '_'.join([save_name] + ['{}_{}'.format(k, v) for k, v in strs.items()])
     

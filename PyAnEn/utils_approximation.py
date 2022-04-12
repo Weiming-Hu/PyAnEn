@@ -42,7 +42,7 @@ class Integration:
     def __init__(self, verifier, integration_range=None, nbins=20,
                  disable_pbar=None, leave_pbar=None, pbar_desc=None,
                  workers=None, chunksize=None, less_memory=None,
-                 memmap_dir=None, memmap_dtype=np.float32):
+                 memmap_dir=None, memmap_dtype=np.float64):
         
         # Initialization
         self.seq_x = None

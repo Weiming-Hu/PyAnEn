@@ -78,7 +78,7 @@ class Integration:
     ###################
         
     def _crps(self):
-        desc = 'Integrating CRPS'
+        desc = 'Integrating CRPS for ' + type(self.verifier).__name__
         wrapper = partial(wrapper_brier, verifier=self.verifier, memmap_arr=self.memmap_arr_w)
         iterables = enumerate(self.seq_x) if self.less_memory else self.seq_x
         
@@ -98,7 +98,7 @@ class Integration:
     def _mean(self):
         # Reference: https://math.berkeley.edu/~scanlon/m16bs04/ln/16b2lec30.pdf
         
-        desc = 'Integrating mean'
+        desc = 'Integrating mean for ' + type(self.verifier).__name__
         wrapper = partial(wrapper_cdf, verifier=self.verifier, memmap_arr=self.memmap_arr_w)
         iterables = enumerate(self.seq_x) if self.less_memory else self.seq_x
         
@@ -119,7 +119,7 @@ class Integration:
     def _variance(self):
         # Reference: https://math.berkeley.edu/~scanlon/m16bs04/ln/16b2lec30.pdf
         
-        desc = 'Integrating variance'
+        desc = 'Integrating variance ' + type(self.verifier).__name__
         wrapper = partial(wrapper_cdf, verifier=self.verifier, memmap_arr=self.memmap_arr_w)
         iterables = enumerate(self.seq_x) if self.less_memory else self.seq_x
         

@@ -29,7 +29,7 @@ Defaults = {
     'pyanen_split_crps_ensemble_along_0': False,
     'pyanen_integrate_range_multiplier': 5,
     'pyanen_integrate_with_less_memory': False,
-    'pyanen_integration_dir': '',
+    'pyanen_integrate_wdir': '',
 }
 
 for k, v in Defaults.items():

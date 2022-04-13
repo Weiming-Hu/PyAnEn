@@ -65,11 +65,11 @@ class Integration:
         self.chunksize = int(os.environ['pyanen_tqdm_chunksize']) if chunksize is None else chunksize
         self.less_memory = util.strtobool(os.environ['pyanen_integrate_with_less_memory']) if less_memory is None else less_memory
         
-        integration_dir = os.environ['pyanen_integration_dir']
+        wdir = os.environ['pyanen_integrate_wdir']
         
         if memmap_dir is not None: self.memmap_dir = memmap_dir
+        elif wdir != '': self.memmap_dir = os.path.expanduser(wdir)
         elif self.verifier.working_directory is not None: self.memmap_dir = self.verifier.working_directory
-        elif integration_dir != '': self.memmap_dir = os.path.expanduser(integration_dir)
         else: self.memmap_dir = ''
         
     def crps(self): return self._workflow(self._crps)

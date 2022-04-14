@@ -21,7 +21,7 @@ import numpy as np
 from tqdm.auto import tqdm
 from distutils import util
 from functools import partial
-from tqdm.contrib.concurrent import thread_map
+from tqdm.contrib.concurrent import process_map
 
 
 # Wrapper functions for parallelizing CDF
@@ -86,7 +86,7 @@ class Integration:
         iterables = enumerate(self.seq_x) if self.less_memory else self.seq_x
         
         if self.cores == 1: brier = np.array([wrapper(_x) for _x in tqdm(iterables, **self.pbar_kws, desc=desc, total=self.nbins)])
-        else: brier = np.array(thread_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws, desc=desc, total=self.nbins))
+        else: brier = np.array(process_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws, desc=desc, total=self.nbins))
         
         # Calculate difference
         dx = (self.seq_x[1:] - self.seq_x[:-1]).reshape(self.nbins - 1, *(len(self.verifier.o.shape) * [1]))
@@ -106,7 +106,7 @@ class Integration:
         iterables = enumerate(self.seq_x) if self.less_memory else self.seq_x
         
         if self.cores == 1: cdf = np.array([wrapper(_x) for _x in tqdm(iterables, **self.pbar_kws, desc=desc, total=self.nbins)])
-        else: cdf = np.array(thread_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws, desc=desc, total=self.nbins))
+        else: cdf = np.array(process_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws, desc=desc, total=self.nbins))
         
         # Calculate difference
         x = self.seq_x.reshape(self.nbins, *(len(self.verifier.o.shape) * [1]))
@@ -127,7 +127,7 @@ class Integration:
         iterables = enumerate(self.seq_x) if self.less_memory else self.seq_x
         
         if self.cores == 1: cdf = np.array([wrapper(_x) for _x in tqdm(iterables, **self.pbar_kws, desc=desc, total=self.nbins)])
-        else: cdf = np.array(thread_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws, desc=desc, total=self.nbins))
+        else: cdf = np.array(process_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws, desc=desc, total=self.nbins))
         
         # Calculate difference
         x = self.seq_x.reshape(self.nbins, *(len(self.verifier.o.shape) * [1]))

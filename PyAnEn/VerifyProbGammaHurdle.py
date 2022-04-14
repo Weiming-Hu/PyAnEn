@@ -17,6 +17,7 @@
 import numpy as np
 
 from .VerifyProb import VerifyProb
+from .utils_special_boot import corr
 from .utils_dist import cdf_gamma_hurdle
 from .utils_approximation import Integration
 
@@ -80,3 +81,5 @@ class VerifyProbGammaHurdle(VerifyProb):
     def _crps(self):
         return Integration(verifier=self, integration_range=self.integration_range, nbins=self.n_approx_bins).crps()
     
+    def _corr(self):
+        return corr(self.f_determ(), self.o, self.avg_axis, self.boot_samples)

@@ -18,6 +18,7 @@ import numpy as np
 import properscoring as ps
 
 from .VerifyProb import VerifyProb
+from .utils_special_boot import corr
 from .utils_crps import crps_truncated_gaussian
 from .utils_dist import sample_dist_gaussian, cdf_gaussian
 
@@ -79,3 +80,5 @@ class VerifyProbGaussian(VerifyProb):
         else:
             return ps.crps_gaussian(self.o, mu=self.f['mu'], sig=self.f['sigma'])
     
+    def _corr(self):
+        return corr(self.f_determ(), self.o, self.avg_axis, self.boot_samples)

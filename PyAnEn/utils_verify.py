@@ -77,11 +77,11 @@ def rank_histogram(f, o, ensemble_axis):
         assert parallelize_axis < 0, 'parallelize_axis needs to be negative, counting from the end of dimensions, excluding the ensemble axis'
         
         ranks = process_map(rankdata,
-                           np.split(c, c.shape[parallelize_axis], parallelize_axis),
-                           disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
-                           leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
-                           chunksize=chunksize, max_workers=cores,
-                           desc='Rank histogram')
+                            np.split(c, c.shape[parallelize_axis], parallelize_axis),
+                            disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
+                            leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
+                            chunksize=chunksize, max_workers=cores,
+                            desc='Rank histogram')
         
         obs_ranks = np.concatenate(ranks, axis=parallelize_axis)
     
@@ -176,11 +176,11 @@ def ens_to_prob(f, ensemble_aixs, over=None, below=None):
         assert parallelize_axis == -1, 'parallelize_axis needs to be -1 for the ens_to_prob operation. Got {}'.format(parallelize_axis)
         
         ret = process_map(partial(transfer_func, over=over, below=below),
-                         np.split(f, f.shape[parallelize_axis], parallelize_axis),
-                         disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
-                         leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
-                         chunksize=chunksize, max_workers=cores,
-                         desc='Ensemble to probability')
+                          np.split(f, f.shape[parallelize_axis], parallelize_axis),
+                          disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
+                          leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
+                          chunksize=chunksize, max_workers=cores,
+                          desc='Ensemble to probability')
         
         ret = np.array(ret).reshape(f_shape)
             

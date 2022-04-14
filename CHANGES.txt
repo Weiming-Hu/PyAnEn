@@ -1,3 +1,7 @@
+# PyAnEn 0.4.8
+
+- Added correlation
+
 # PyAnEn 0.4.7
 
 - Added verification for Gamma hurdle model

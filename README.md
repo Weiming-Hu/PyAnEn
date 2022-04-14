@@ -23,6 +23,7 @@ pip install git+https://github.com/Weiming-Hu/PyAnEn.git
 | Spread                   | spread              | Yes                    | Yes                      | No                 |
 | RMSE                     | sq_error            | Yes                    | Yes                      | No                 |
 | MAE                      | ab_error            | Yes                    | Yes                      | No                 |
+| Correlation              | corr                | Yes                    | Yes                      | No                 |
 | Brier Score              | brier               | Yes                    | Yes                      | Yes for ensembles  |
 | Spread Skill Correlation | binned_spread_skill | Yes                    | Yes                      | No                 |
 | IOU (Deterministic)      | iou_determ          | Yes                    | No                       | No                 |

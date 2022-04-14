@@ -21,6 +21,8 @@ import properscoring as ps
 from distutils import util
 from tqdm.auto import tqdm
 from .Verify import Verify
+from .utils_special_boot import corr
+from .utils_special_boot import brier_decomp
 from .utils_verify import iou_prob
 from .utils_verify import iou_determ
 from .utils_verify import ens_to_prob
@@ -29,6 +31,7 @@ from .utils_verify import calculate_roc
 from .utils_verify import rank_histogram
 from .utils_verify import _reliability_split
 from .utils_verify import _binned_spread_skill_create_split
+
 
 
 class VerifyEnsemble(Verify):
@@ -67,6 +70,9 @@ class VerifyEnsemble(Verify):
     
     def _f_determ(self):
         return np.copy(self.f_collapsed)
+    
+    def _corr(self):
+        return corr(self.f_determ(), self.o, self.avg_axis, self.boot_samples)
     
     def _error(self):
         return self.f_collapsed - self.o
@@ -107,9 +113,14 @@ class VerifyEnsemble(Verify):
         else:
             return np.max(self.f, axis=self.ensemble_axis) - np.min(self.f, axis=self.ensemble_axis)
     
-    def _brier(self, over=None, below=None):
+    def _brier(self, over, below):
         brier = self.cdf(over=over, below=below) - binarize_obs(self.o, over=over, below=below)
         return brier ** 2
+    
+    def _brier_decomp(self, over, below):
+        f = self.cdf(over=over, below=below)
+        o = binarize_obs(self.o, over=over, below=below)
+        return brier_decomp(f, o, self.avg_axis, self.boot_samples)
     
     def _variance(self):
         return self.f.var(self.ensemble_axis)

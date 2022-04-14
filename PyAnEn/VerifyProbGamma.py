@@ -18,6 +18,7 @@ import numpy as np
 
 from .VerifyProb import VerifyProb
 from .utils_crps import crps_gamma
+from .utils_special_boot import corr
 from .utils_dist import sample_dist_gamma, cdf_gamma
 
 
@@ -80,4 +81,7 @@ class VerifyProbGamma(VerifyProb):
             raise NotImplementedError
         else:
             return crps_gamma(self.f['unshifted_mu'], self.f['sigma'], self.f['shift'], self.o, reduce_sum=False)
+    
+    def _corr(self):
+        return corr(self.f_determ(), self.o, self.avg_axis, self.boot_samples)
     

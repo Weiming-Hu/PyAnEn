@@ -20,6 +20,7 @@ import numpy as np
 from scipy import stats
 from distutils import util
 from .Verify import Verify
+from .utils_special_boot import brier_decomp
 from .utils_verify import iou_prob
 from .utils_verify import iou_determ
 from .utils_verify import binarize_obs
@@ -54,6 +55,7 @@ class VerifyProb(Verify):
     def _f_determ(self): raise NotImplementedError
     def _prob_to_ens(self): raise NotImplementedError
     def _cdf(self, over=None, below=None): raise NotImplementedError
+    def _corr(self): raise NotImplementedError
     
     ##################
     # Public Methods #
@@ -113,6 +115,11 @@ class VerifyProb(Verify):
     def _brier(self, over, below):
         brier = self.cdf(over=over, below=below) - binarize_obs(self.o, over=over, below=below)
         return brier ** 2
+    
+    def _brier_decomp(self, over, below):
+        f = self.cdf(over=over, below=below)
+        o = binarize_obs(self.o, over=over, below=below)
+        return brier_decomp(f, o, self.avg_axis, self.boot_samples)
     
     def _binned_spread_skill(self, nbins=15):
         

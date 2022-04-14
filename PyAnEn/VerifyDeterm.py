@@ -17,6 +17,7 @@
 import numpy as np
 
 from .Verify import Verify
+from .utils_special_boot import corr
 from .utils_verify import iou_determ
 
 
@@ -49,6 +50,9 @@ class VerifyDeterm(Verify):
     
     def _f_determ(self):
         return np.copy(self.f)
+    
+    def _corr(self):
+        return corr(self.f_determ(), self.o, self.avg_axis, self.boot_samples)
     
     ###################
     # Private Methods #

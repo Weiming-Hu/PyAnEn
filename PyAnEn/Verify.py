@@ -52,10 +52,15 @@ class Verify:
     def _iou_prob(self, over=None, below=None): raise NotImplementedError
     def _cdf(self, over=None, below=None): raise NotImplementedError
     def _f_determ(self): raise NotImplementedError
+    def _corr(self): raise NotImplementedError
+    def _brier_decomp(self, over, below): raise NotImplementedError
         
     ##################
     # Metric Methods #
     ##################
+    
+    def corr(self, save_name=None): return self._metric_workflow_1(save_name, self._corr)
+    def brier_decomp(self, over=None, below=None, save_name=None): return self._metric_workflow_1(save_name, self._brier_decomp, over=over, below=below)
     
     def rank_hist(self, save_name='rank'): return self._metric_workflow_1(save_name, self._rank_hist)
     def variance(self, save_name='variance'): return self._metric_workflow_1(save_name, self._variance)
@@ -65,7 +70,7 @@ class Verify:
     def iou_determ(self, over=None, below=None, save_name='iou_determ'): return self._metric_workflow_1(self.to_name(save_name, over=over, below=below), self._iou_determ, over=over, below=below)
     def iou_prob(self, over=None, below=None, save_name='iou_prob'): return self._metric_workflow_1(self.to_name(save_name, over=over, below=below), self._iou_prob, over=over, below=below)
     def cdf(self, over=None, below=None, save_name='cdf'): return self._metric_workflow_1(self.to_name(save_name, over=over, below=below), self._cdf, over=over, below=below)
-    
+
     def crps(self, save_name='crps'): return self._metric_workflow_2(save_name, self._crps)
     def error(self, save_name='error'): return self._metric_workflow_2(save_name, self._error)
     def spread(self, save_name='spread'): return self._metric_workflow_2(save_name, self._spread)
@@ -76,8 +81,7 @@ class Verify:
     def reliability(self, nbins=15, over=None, below=None, save_name='rel'): return self._metric_workflow_3(self.to_name(save_name, nbins=nbins, over=over, below=below), self._reliability, self.post_reliability, nbins=nbins, over=over, below=below)
     def binned_spread_skill(self, nbins=15, save_name='ss'): return self._metric_workflow_3(self.to_name(save_name, nbins=nbins), self._binned_spread_skill, self.post_binned_spread_skill, nbins=nbins)
 
-    def rmse(self, save_name='sq_error'):
-        return np.sqrt(self.sq_error(save_name=save_name))
+    def rmse(self, save_name='sq_error'): return np.sqrt(self.sq_error(save_name=save_name))
     
     ##################
     # Static Methods #

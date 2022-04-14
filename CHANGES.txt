@@ -1,6 +1,6 @@
 # PyAnEn 0.4.8
 
-- Added correlation
+- Added correlation and brier decomposition
 
 # PyAnEn 0.4.7
 

@@ -25,27 +25,25 @@ from functools import partial
 
 
 # Wrapper functions for parallelizing CDF
-def wrapper_cdf(x, self):
-    if self.less_memory:
-        memmap_arr = np.memmap(filename=self.memmap_arr_str, shape=self.memmap_shape, dtype=self.memmap_dtype, mode='r+')
-        memmap_arr[x[0]] = self.verifier.cdf(below=x[1])
+def wrapper_cdf(x, verifier, less_memory, memmap_arr_str, memmap_shape, memmap_dtype):
+    if less_memory:
+        memmap_arr = np.memmap(filename=memmap_arr_str, shape=memmap_shape, dtype=memmap_dtype, mode='r+')
+        memmap_arr[x[0]] = verifier.cdf(below=x[1])
         del memmap_arr
     else:
-        return x[0], self.verifier.cdf(below=x[1])
+        return x[0], verifier.cdf(below=x[1])
 
 # Wrapper function for parallelizing Brier.
 # Not using the public function call because brier scores need not to be aggregated.
 # Intermediately saved results can still be used because _brier will call cdf that relies on saved data.
 #
-def wrapper_brier(x, self):
-    if self.less_memory:
-        memmap_arr = np.memmap(filename=self.memmap_arr_str, shape=self.memmap_shape, dtype=self.memmap_dtype, mode='r+')
-        memmap_arr[x[0]] = self.verifier._metric_workflow_1(self.verifier.to_name('brier', over=None, below=x[1]),
-                                                            self.verifier._brier, over=None, below=x[1])
+def wrapper_brier(x, verifier, less_memory, memmap_arr_str, memmap_shape, memmap_dtype):
+    if less_memory:
+        memmap_arr = np.memmap(filename=memmap_arr_str, shape=memmap_shape, dtype=memmap_dtype, mode='r+')
+        memmap_arr[x[0]] = verifier._metric_workflow_1(verifier.to_name('brier', over=None, below=x[1]), verifier._brier, over=None, below=x[1])
         del memmap_arr
     else:
-        return x[0], self.verifier._metric_workflow_1(self.verifier.to_name('brier', over=None, below=x[1]),
-                                                      self.verifier._brier, over=None, below=x[1])
+        return x[0], verifier._metric_workflow_1(verifier.to_name('brier', over=None, below=x[1]), verifier._brier, over=None, below=x[1])
 
 
 def _ray_to_iterator(obj_ids):
@@ -101,15 +99,18 @@ class Integration:
         desc = 'Integrating CRPS for ' + type(self.verifier).__name__ + (' (memory efficient)' if self.less_memory else '')
         
         if self.cores == 1:
-            wrapper = partial(wrapper_brier, self=self)
+            wrapper = partial(wrapper_brier, verifier=self.verifier, less_memory=self.less_memory,
+                              memmap_arr_str=self.memmap_arr_str, memmap_shape=self.memmap_shape, memmap_dtype=self.memmap_dtype)
             brier = [wrapper(_x) for _x in tqdm(enumerate(self.seq_x), **self.pbar_kws, desc=desc, total=self.nbins)]
             if not self.less_memory: brier = np.array([i[1] for i in brier])
             
         else:
             ray.init(num_cpus=self.cores)
-            shared_self = ray.put(self)
+            shared_verifier = ray.put(self.verifier)
             ray_wrapper = ray.remote(wrapper_brier)
-            brier = [ray_wrapper.remote(i, shared_self) for i in enumerate(self.seq_x)]
+            brier = [ray_wrapper.remote(i, verifier=shared_verifier, less_memory=self.less_memory,
+                                        memmap_arr_str=self.memmap_arr_str, memmap_shape=self.memmap_shape,
+                                        memmap_dtype=self.memmap_dtype) for i in enumerate(self.seq_x)]
             brier = [x for x in tqdm(_ray_to_iterator(brier), **self.pbar_kws, desc=desc, total=self.nbins)]
             
             # Results generated from Ray are not in order. Therefore, I need to reorder them!
@@ -136,15 +137,19 @@ class Integration:
         desc = 'Integrating mean for ' + type(self.verifier).__name__ + (' (memory efficient)' if self.less_memory else '')
         
         if self.cores == 1:
-            wrapper = partial(wrapper_cdf, self=self)
+            wrapper = partial(wrapper_cdf, verifier=self.verifier, less_memory=self.less_memory,
+                              memmap_arr_str=self.memmap_arr_str, memmap_shape=self.memmap_shape,
+                              memmap_dtype=self.memmap_dtype)
             cdf = [wrapper(_x) for _x in tqdm(enumerate(self.seq_x), **self.pbar_kws, desc=desc, total=self.nbins)]
             if not self.less_memory: cdf = np.array([i[1] for i in cdf])
             
         else:
             ray.init(num_cpus=self.cores)
-            shared_self = ray.put(self)
+            shared_verifier = ray.put(self.verifier)
             ray_wrapper = ray.remote(wrapper_cdf)
-            cdf = [ray_wrapper.remote(i, shared_self) for i in enumerate(self.seq_x)]
+            cdf = [ray_wrapper.remote(i, verifier=shared_verifier, less_memory=self.less_memory,
+                                      memmap_arr_str=self.memmap_arr_str, memmap_shape=self.memmap_shape,
+                                      memmap_dtype=self.memmap_dtype) for i in enumerate(self.seq_x)]
             cdf = [x for x in tqdm(_ray_to_iterator(cdf), **self.pbar_kws, desc=desc, total=self.nbins)]
             ray.shutdown()
             
@@ -171,15 +176,19 @@ class Integration:
         desc = 'Integrating variance ' + type(self.verifier).__name__ + (' (memory efficient)' if self.less_memory else '')
         
         if self.cores == 1:
-            wrapper = partial(wrapper_cdf, self=self)
+            wrapper = partial(wrapper_cdf, verifier=self.verifier, less_memory=self.less_memory,
+                              memmap_arr_str=self.memmap_arr_str, memmap_shape=self.memmap_shape,
+                              memmap_dtype=self.memmap_dtype)
             cdf = [wrapper(_x) for _x in tqdm(enumerate(self.seq_x), **self.pbar_kws, desc=desc, total=self.nbins)]
             if not self.less_memory: cdf = np.array([i[1] for i in cdf])
             
         else: 
             ray.init(num_cpus=self.cores)
-            shared_self = ray.put(self)
+            shared_verifier = ray.put(self.verifier)
             ray_wrapper = ray.remote(wrapper_cdf)
-            cdf = [ray_wrapper.remote(i, shared_self) for i in enumerate(self.seq_x)]
+            cdf = [ray_wrapper.remote(i, verifier=shared_verifier, less_memory=self.less_memory,
+                                      memmap_arr_str=self.memmap_arr_str, memmap_shape=self.memmap_shape,
+                                      memmap_dtype=self.memmap_dtype) for i in enumerate(self.seq_x)]
             cdf = [x for x in tqdm(_ray_to_iterator(cdf), **self.pbar_kws, desc=desc, total=self.nbins)]
             
             if not self.less_memory:

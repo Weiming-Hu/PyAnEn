@@ -16,21 +16,22 @@ pip install git+https://github.com/Weiming-Hu/PyAnEn.git
 
 ## Implemented Verification Metrics
 
-| **Metric**               | **Method Name**     | **Operate Along Axis** | **Support Bootstraping** | **Parallelizable** |
-|--------------------------|---------------------|------------------------|--------------------------|--------------------|
-| CRPS                     | crps                | Yes                    | Yes                      | No                 |
-| Bias                     | error               | Yes                    | Yes                      | No                 |
-| Spread                   | spread              | Yes                    | Yes                      | No                 |
-| RMSE                     | sq_error            | Yes                    | Yes                      | No                 |
-| MAE                      | ab_error            | Yes                    | Yes                      | No                 |
-| Correlation              | corr                | Yes                    | Yes                      | No                 |
-| Brier Score              | brier               | Yes                    | Yes                      | Yes for ensembles  |
-| Spread Skill Correlation | binned_spread_skill | Yes                    | Yes                      | No                 |
-| IOU (Deterministic)      | iou_determ          | Yes                    | No                       | No                 |
-| IOU (Probability)        | iou_prob            | Yes                    | No                       | No                 |
-| Rank Histogram           | rank_hist           | Yes                    | No                       | Yes                |
-| Sharpness                | sharpness           | Yes                    | No                       | Yes for ensembles  |
-| Reliability Diagram      | reliability         | No                     | Yes                      | Yes for ensembles  |
-| ROC Curve                | roc                 | No                     | No                       | Yes for ensembles  |
+| **Metric**                | **Method Name**     | **Operate Along Axis** | **Support Bootstraping** |  **Parallelized**  |
+|---------------------------|---------------------|------------------------|--------------------------|--------------------|
+| CRPS                      | crps                | Yes                    | Yes                      | No                 |
+| Bias                      | error               | Yes                    | Yes                      | No                 |
+| Spread                    | spread              | Yes                    | Yes                      | No                 |
+| RMSE                      | sq_error            | Yes                    | Yes                      | No                 |
+| MAE                       | ab_error            | Yes                    | Yes                      | No                 |
+| Correlation               | corr                | Yes                    | Yes                      | No                 |
+| Brier Score               | brier               | Yes                    | Yes                      | Yes for ensembles  |
+| Brier Score Decomposition | brier_decomp        | Yes                    | Yes                      | Yes for ensembles  |
+| Spread Skill Correlation  | binned_spread_skill | Yes                    | Yes                      | No                 |
+| IOU (Deterministic)       | iou_determ          | Yes                    | No                       | No                 |
+| IOU (Probability)         | iou_prob            | Yes                    | No                       | No                 |
+| Rank Histogram            | rank_hist           | Yes                    | No                       | Yes                |
+| Sharpness                 | sharpness           | Yes                    | No                       | Yes for ensembles  |
+| Reliability Diagram       | reliability         | No                     | Yes                      | Yes for ensembles  |
+| ROC Curve                 | roc                 | No                     | No                       | Yes for ensembles  |
 
-Some operations are not parallelized currently because these operations are already blazingly fast. However, parallelization can be done if needed.
+Some verification metrics might be calculated by numerical integration. If this is the case, the numerical integration process is parallelized.

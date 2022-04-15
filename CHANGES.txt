@@ -1,6 +1,7 @@
 # PyAnEn 0.4.8
 
 - Added correlation and brier decomposition
+- Changed the parallelization scheme of Integration from tqdm to ray
 
 # PyAnEn 0.4.7
 

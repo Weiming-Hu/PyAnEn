@@ -6,6 +6,10 @@ from PyAnEn import VerifyProbGaussian
 from PyAnEn.utils_approximation import Integration
 
 
+# os.environ['pyanen_tqdm_disable'] = 'False'
+# os.environ['pyanen_tqdm_leave'] = 'True'
+
+
 def test_mean():
 
     o = np.random.rand(3, 4, 5) + 10
@@ -40,7 +44,6 @@ def test_variance():
     
     assert np.abs(i_var - f['sigma'] ** 2).mean() < 1e-4
 
-    
 def test_crps():
     o = np.random.rand(3, 4, 5) + 10
     
@@ -68,21 +71,33 @@ def test_batch_variance():
     }
 
     o = f['mu']
-
+    
+    print('Calculating f_determ ...')
     verifier = VerifyProbGaussian(f=f, o=o)
     f1 = verifier.f_determ()
     
+    print('Integrate ...')
     integrator = Integration(verifier=verifier, integration_range=(-100, 100), nbins=10000, less_memory=False)
     f2 = integrator.mean()
 
+    print('Integrate (less memory) ...')
     integrator_less = Integration(verifier=verifier, integration_range=(-100, 100), nbins=10000, less_memory=True)
     f3 = integrator_less.mean()
     
-    assert np.abs(f1 - f2).mean() < 1e-3
-    assert np.abs(f2 - f3).mean() < 1e-2
-    assert np.abs(f1 - f3).mean() < 1e-2
-
+    # print('Saving ...')
+    # np.save('tmp.pkl', np.stack([f1, f2, f3], axis=0))
     
+    assert np.abs(f1 - f2).max() < 1e-2, 'Largest difference is {}'.format(np.abs(f1 - f2).max())
+    assert np.abs(f2 - f3).max() < 1e-2, 'Largest difference is {}'.format(np.abs(f2 - f3).max())
+    assert np.abs(f1 - f3).max() < 1e-2, 'Largest difference is {}'.format(np.abs(f1 - f3).max())
+
+
 def test_parallel():
-    os.environ['pyanen_tqdm_workers'] = '2'
+    old_val = os.environ['pyanen_tqdm_workers']
+    os.environ['pyanen_tqdm_workers'] = '4'
     test_batch_variance()
+    os.environ['pyanen_tqdm_workers'] = old_val
+
+
+if __name__ == '__main__':
+    test_parallel()

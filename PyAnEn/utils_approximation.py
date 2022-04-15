@@ -15,27 +15,44 @@
 #
 
 import os
+import ray
 
 import numpy as np
 
 from tqdm.auto import tqdm
 from distutils import util
 from functools import partial
-from tqdm.contrib.concurrent import thread_map
 
 
 # Wrapper functions for parallelizing CDF
-def wrapper_cdf(x, verifier, memmap_arr=None):
-    if memmap_arr is None: return verifier.cdf(below=x)
-    else: memmap_arr[x[0]] = verifier.cdf(below=x[1])
+def wrapper_cdf(x, self):
+    if self.less_memory:
+        memmap_arr = np.memmap(filename=self.memmap_arr_str, shape=self.memmap_shape, dtype=self.memmap_dtype, mode='r+')
+        memmap_arr[x[0]] = self.verifier.cdf(below=x[1])
+        del memmap_arr
+    else:
+        return x[0], self.verifier.cdf(below=x[1])
 
 # Wrapper function for parallelizing Brier.
 # Not using the public function call because brier scores need not to be aggregated.
 # Intermediately saved results can still be used because _brier will call cdf that relies on saved data.
 #
-def wrapper_brier(x, verifier, memmap_arr=None):
-    if memmap_arr is None: return verifier._metric_workflow_1(verifier.to_name('brier', over=None, below=x), verifier._brier, over=None, below=x)
-    else: memmap_arr[x[0]] = verifier._metric_workflow_1(verifier.to_name('brier', over=None, below=x[1]), verifier._brier, over=None, below=x[1])
+def wrapper_brier(x, self):
+    if self.less_memory:
+        memmap_arr = np.memmap(filename=self.memmap_arr_str, shape=self.memmap_shape, dtype=self.memmap_dtype, mode='r+')
+        memmap_arr[x[0]] = self.verifier._metric_workflow_1(self.verifier.to_name('brier', over=None, below=x[1]),
+                                                            self.verifier._brier, over=None, below=x[1])
+        del memmap_arr
+    else:
+        return x[0], self.verifier._metric_workflow_1(self.verifier.to_name('brier', over=None, below=x[1]),
+                                                      self.verifier._brier, over=None, below=x[1])
+
+
+def _ray_to_iterator(obj_ids):
+    # Reference: https://github.com/ray-project/ray/issues/8164#issuecomment-697971305
+    while obj_ids:
+        done, obj_ids = ray.wait(obj_ids)
+        yield ray.get(done[0])
 
 
 class Integration:
@@ -70,7 +87,7 @@ class Integration:
         if memmap_dir is not None: self.memmap_dir = memmap_dir
         elif wdir != '': self.memmap_dir = os.path.expanduser(wdir)
         elif self.verifier.working_directory is not None: self.memmap_dir = self.verifier.working_directory
-        else: self.memmap_dir = ''
+        else: self.memmap_dir = '.'
         
     def crps(self): return self._workflow(self._crps)
     def mean(self): return self._workflow(self._mean)
@@ -81,18 +98,34 @@ class Integration:
     ###################
         
     def _crps(self):
-        desc = 'Integrating CRPS for ' + type(self.verifier).__name__
-        wrapper = partial(wrapper_brier, verifier=self.verifier, memmap_arr=self.memmap_arr_w)
-        iterables = enumerate(self.seq_x) if self.less_memory else self.seq_x
+        desc = 'Integrating CRPS for ' + type(self.verifier).__name__ + (' (memory efficient)' if self.less_memory else '')
         
-        if self.cores == 1: brier = np.array([wrapper(_x) for _x in tqdm(iterables, **self.pbar_kws, desc=desc, total=self.nbins)])
-        else: brier = np.array(thread_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws, desc=desc, total=self.nbins))
+        if self.cores == 1:
+            wrapper = partial(wrapper_brier, self=self)
+            brier = [wrapper(_x) for _x in tqdm(enumerate(self.seq_x), **self.pbar_kws, desc=desc, total=self.nbins)]
+            if not self.less_memory: brier = np.array([i[1] for i in brier])
+            
+        else:
+            ray.init(num_cpus=self.cores)
+            shared_self = ray.put(self)
+            ray_wrapper = ray.remote(wrapper_brier)
+            brier = [ray_wrapper.remote(i, shared_self) for i in enumerate(self.seq_x)]
+            brier = [x for x in tqdm(_ray_to_iterator(brier), **self.pbar_kws, desc=desc, total=self.nbins)]
+            
+            # Results generated from Ray are not in order. Therefore, I need to reorder them!
+            if not self.less_memory:
+                brier_ordered = [None] * len(brier)
+                for i, e in brier: brier_ordered[i] = e
+                del brier
+                brier = brier_ordered
+            
+            brier = np.array(brier)
+            ray.shutdown()
         
         # Calculate difference
         dx = (self.seq_x[1:] - self.seq_x[:-1]).reshape(self.nbins - 1, *(len(self.verifier.o.shape) * [1]))
         
         if self.less_memory:
-            self.memmap_arr_w.flush()
             return 0.5 * (self._memmap_sum_mul(self.memmap_arr_r[1:], dx, self.memmap_dtype) +
                           self._memmap_sum_mul(self.memmap_arr_r[:-1], dx, self.memmap_dtype))
         else:
@@ -100,34 +133,63 @@ class Integration:
         
     def _mean(self):
         # Reference: https://math.berkeley.edu/~scanlon/m16bs04/ln/16b2lec30.pdf
+        desc = 'Integrating mean for ' + type(self.verifier).__name__ + (' (memory efficient)' if self.less_memory else '')
         
-        desc = 'Integrating mean for ' + type(self.verifier).__name__
-        wrapper = partial(wrapper_cdf, verifier=self.verifier, memmap_arr=self.memmap_arr_w)
-        iterables = enumerate(self.seq_x) if self.less_memory else self.seq_x
-        
-        if self.cores == 1: cdf = np.array([wrapper(_x) for _x in tqdm(iterables, **self.pbar_kws, desc=desc, total=self.nbins)])
-        else: cdf = np.array(thread_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws, desc=desc, total=self.nbins))
+        if self.cores == 1:
+            wrapper = partial(wrapper_cdf, self=self)
+            cdf = [wrapper(_x) for _x in tqdm(enumerate(self.seq_x), **self.pbar_kws, desc=desc, total=self.nbins)]
+            if not self.less_memory: cdf = np.array([i[1] for i in cdf])
+            
+        else:
+            ray.init(num_cpus=self.cores)
+            shared_self = ray.put(self)
+            ray_wrapper = ray.remote(wrapper_cdf)
+            cdf = [ray_wrapper.remote(i, shared_self) for i in enumerate(self.seq_x)]
+            cdf = [x for x in tqdm(_ray_to_iterator(cdf), **self.pbar_kws, desc=desc, total=self.nbins)]
+            ray.shutdown()
+            
+            if not self.less_memory:
+                cdf_ordered = [None] * len(cdf)
+                for i, e in cdf: cdf_ordered[i] = e
+                del cdf
+                cdf = cdf_ordered
+            
+            cdf = np.array(cdf)
         
         # Calculate difference
         x = self.seq_x.reshape(self.nbins, *(len(self.verifier.o.shape) * [1]))
         x2 = x[1:] + x[:-1]
         
         if self.less_memory:
-            self.memmap_arr_w.flush()
             return 0.5 * (self._memmap_sum_mul(self.memmap_arr_r[1:], x2, self.memmap_dtype) -
                           self._memmap_sum_mul(self.memmap_arr_r[:-1], x2, self.memmap_dtype))
         else:        
             return 0.5 * np.sum(x2 * (cdf[1:] - cdf[:-1]), axis=0)
-    
+        
     def _variance(self):
         # Reference: https://math.berkeley.edu/~scanlon/m16bs04/ln/16b2lec30.pdf
+        desc = 'Integrating variance ' + type(self.verifier).__name__ + (' (memory efficient)' if self.less_memory else '')
         
-        desc = 'Integrating variance ' + type(self.verifier).__name__
-        wrapper = partial(wrapper_cdf, verifier=self.verifier, memmap_arr=self.memmap_arr_w)
-        iterables = enumerate(self.seq_x) if self.less_memory else self.seq_x
-        
-        if self.cores == 1: cdf = np.array([wrapper(_x) for _x in tqdm(iterables, **self.pbar_kws, desc=desc, total=self.nbins)])
-        else: cdf = np.array(thread_map(wrapper, iterables, max_workers=self.cores, chunksize=self.chunksize, **self.pbar_kws, desc=desc, total=self.nbins))
+        if self.cores == 1:
+            wrapper = partial(wrapper_cdf, self=self)
+            cdf = [wrapper(_x) for _x in tqdm(enumerate(self.seq_x), **self.pbar_kws, desc=desc, total=self.nbins)]
+            if not self.less_memory: cdf = np.array([i[1] for i in cdf])
+            
+        else: 
+            ray.init(num_cpus=self.cores)
+            shared_self = ray.put(self)
+            ray_wrapper = ray.remote(wrapper_cdf)
+            cdf = [ray_wrapper.remote(i, shared_self) for i in enumerate(self.seq_x)]
+            cdf = [x for x in tqdm(_ray_to_iterator(cdf), **self.pbar_kws, desc=desc, total=self.nbins)]
+            
+            if not self.less_memory:
+                cdf_ordered = [None] * len(cdf)
+                for i, e in cdf: cdf_ordered[i] = e
+                del cdf
+                cdf = cdf_ordered
+                
+            cdf = np.array(cdf)
+            ray.shutdown()
         
         # Calculate difference
         x = self.seq_x.reshape(self.nbins, *(len(self.verifier.o.shape) * [1]))
@@ -137,7 +199,6 @@ class Integration:
         x_sq2 = x_sq[1:] + x_sq[:-1]
         
         if self.less_memory:
-            self.memmap_arr_w.flush()
             mean = 0.5 * (self._memmap_sum_mul(self.memmap_arr_r[1:], x2, self.memmap_dtype) -
                           self._memmap_sum_mul(self.memmap_arr_r[:-1], x2, self.memmap_dtype))
             var = 0.5 * (self._memmap_sum_mul(self.memmap_arr_r[1:], x_sq2, self.memmap_dtype) -
@@ -160,19 +221,28 @@ class Integration:
         return ret
     
     def _initialize_memmap(self, memmap_shape):
-        self.memmap_arr_w = np.memmap(
-            filename=os.path.join(self.memmap_dir, '__numerical_integration__.dat'),
-            shape=memmap_shape, dtype=self.memmap_dtype, mode='write') if self.less_memory else None
-        
-        self.memmap_arr_r = np.memmap(
-            filename=os.path.join(self.memmap_dir, '__numerical_integration__.dat'),
-            shape=memmap_shape, dtype=self.memmap_dtype, mode='readonly') if self.less_memory else None
+        if self.less_memory:
+            self.memmap_arr_str = os.path.join(self.memmap_dir, '__numerical_integration__.dat')
+            self.memmap_shape = memmap_shape
+            
+            self.memmap_arr_w = np.memmap(
+                filename=self.memmap_arr_str, shape=self.memmap_shape,
+                dtype=self.memmap_dtype, mode='write') if self.less_memory else None
+            
+            del self.memmap_arr_w
+            
+            self.memmap_arr_r = np.memmap(
+                filename=self.memmap_arr_str, shape=self.memmap_shape,
+                dtype=self.memmap_dtype, mode='readonly') if self.less_memory else None
     
     def _finalize_memmap(self):
         if self.less_memory:
-            del self.memmap_arr_w
             del self.memmap_arr_r
-            os.remove(os.path.join(self.memmap_dir, '__numerical_integration__.dat'))
+            
+            os.remove(self.memmap_arr_str)
+            
+            del self.memmap_arr_str
+            del self.memmap_shape
     
     def _suppress_sublevel_tqdm(self):
         

@@ -138,7 +138,7 @@ def _workflow(f, o, func_name, func, avg_axis=None, n_samples=None, repeats=None
     
     assert f.shape == o.shape, 'Fatal error: shape mismatch {} != {}'.format(f.shape, o.shape)
     
-    desc = func_name + '' if n_samples is None else ' with boostrapping'
+    desc = func_name + ('' if n_samples is None else ' with boostrapping')
     
     if avg_axis is None: avg_axis = list(range(len(o.shape)))
     else: avg_axis = list(avg_axis)

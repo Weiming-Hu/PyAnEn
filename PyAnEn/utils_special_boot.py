@@ -52,7 +52,10 @@ def _func_brier_decomp(f_slice, o_slice, n_samples, repeats, confidence, skip_na
     bins = np.linspace(0, 1, n_bins + 2)[1:-1]
     belongs = np.digitize(f_slice, bins)
 
-    o_bar = np.mean(o_slice)
+    if skip_nan:
+        o_bar = np.nanmean(o_slice)
+    else:
+        o_bar = np.mean(o_slice)
     
     if n_samples is None:
 
@@ -64,8 +67,12 @@ def _func_brier_decomp(f_slice, o_slice, n_samples, repeats, confidence, skip_na
             N_i = np.count_nonzero(mask)
 
             if N_i != 0:
-                reliability += N_i * (np.mean(f_slice[mask]) - np.mean(o_slice[mask])) ** 2
-                resolution += N_i * (np.mean(o_slice[mask]) - o_bar) ** 2
+                if skip_nan:
+                    reliability += N_i * (np.nanmean(f_slice[mask]) - np.nanmean(o_slice[mask])) ** 2
+                    resolution += N_i * (np.nanmean(o_slice[mask]) - o_bar) ** 2
+                else:
+                    reliability += N_i * (np.mean(f_slice[mask]) - np.mean(o_slice[mask])) ** 2
+                    resolution += N_i * (np.mean(o_slice[mask]) - o_bar) ** 2
 
         reliability /= len(f_slice)
         resolution /= len(f_slice)
@@ -110,7 +117,11 @@ def _func_brier_decomp(f_slice, o_slice, n_samples, repeats, confidence, skip_na
 def _func_corr(f_slice, o_slice, n_samples, repeats, confidence, skip_nan):
     
     if n_samples is None:
-        return np.corrcoef(f_slice, o_slice)[0, 1]
+        if skip_nan:
+            mask = (~np.isnan(f_slice)) & (~np.isnan(o_slice))
+            return np.corrcoef(f_slice[mask], o_slice[mask])[0, 1]
+        else:
+            return np.corrcoef(f_slice, o_slice)[0, 1]
     
     else:
         corr = []

@@ -2,6 +2,7 @@
 
 - Added correlation and brier decomposition
 - Changed the parallelization scheme of Integration from tqdm to ray
+- Added support for array input within `ens_to_prob`
 
 # PyAnEn 0.4.7
 

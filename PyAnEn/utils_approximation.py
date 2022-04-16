@@ -66,6 +66,8 @@ class Integration:
         self.verifier = verifier
         self.integration_range = integration_range
         self.memmap_dtype = memmap_dtype
+        self.memmap_arr_str = None
+        self.memmap_shape = None
         
         # Define the range for numerical integration
         self._define_integration_range()
@@ -250,8 +252,8 @@ class Integration:
             
             os.remove(self.memmap_arr_str)
             
-            del self.memmap_arr_str
-            del self.memmap_shape
+            self.memmap_arr_str = None
+            self.memmap_shape = None
     
     def _suppress_sublevel_tqdm(self):
         

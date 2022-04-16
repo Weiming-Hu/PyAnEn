@@ -31,6 +31,40 @@ def test_RankHist():
         assert np.all(mine[0] == theirs[0]), 'Failed with ensemble axis {}'.format(ens_axis)
 
 
+def test_EnsToProb_KDE_arr():
+    os.environ['pyanen_ens_to_prob_method'] = 'kde'
+    
+    over = np.random.normal(10, 2, (3, 4, 10))
+    f = np.random.normal(10, 2, (3, 4, 10, 50))
+    
+    os.environ['pyanen_tqdm_workers'] = '1'
+    f_serial = ens_to_prob(f, 3, over=over)
+    
+    os.environ['pyanen_tqdm_workers'] = '2'
+    f_parallel = ens_to_prob(f, 3, over=over)
+    
+    assert np.all(f_serial == f_parallel)
+    assert f_serial.shape == (3, 4, 10)
+    assert f_parallel.shape == (3, 4, 10)
+
+
+def test_EnsToProb_Moments_arr():
+    os.environ['pyanen_ens_to_prob_method'] = 'moments'
+    
+    over = np.random.normal(10, 2, (3, 4, 10))
+    f = np.random.normal(10, 2, (3, 4, 10, 50))
+    
+    os.environ['pyanen_tqdm_workers'] = '1'
+    f_serial = ens_to_prob(f, 3, over=over)
+    
+    os.environ['pyanen_tqdm_workers'] = '2'
+    f_parallel = ens_to_prob(f, 3, over=over)
+    
+    assert np.all(f_serial == f_parallel)
+    assert f_serial.shape == (3, 4, 10)
+    assert f_parallel.shape == (3, 4, 10)
+    
+    
 def test_EnsToProb_KDE():
     os.environ['pyanen_ens_to_prob_method'] = 'kde'
     

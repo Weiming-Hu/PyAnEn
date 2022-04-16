@@ -92,7 +92,7 @@ def rank_histogram(f, o, ensemble_axis):
     return obs_ranks
 
 
-def ens_to_prob_kde(ens, over=None, below=None, bandwidth=None, kernel=None,
+def ens_to_prob_kde(ens, bandwidth=None, kernel=None,
                     samples=None, spread_multiplier=None, pbar=None):
     
     if bandwidth is None: bandwidth = float(os.environ['pyanen_kde_bandwidth'])
@@ -100,6 +100,8 @@ def ens_to_prob_kde(ens, over=None, below=None, bandwidth=None, kernel=None,
     if samples is None: samples = int(os.environ['pyanen_kde_samples'])
     if spread_multiplier is None: spread_multiplier = int(os.environ['pyanen_kde_multiply_spread'])
     
+    ens = ens.ravel()
+    below, ens = ens[0], ens[1:]
     ens = ens.reshape(-1, 1)
     
     kde = KernelDensity(bandwidth=bandwidth, kernel=kernel)
@@ -109,7 +111,6 @@ def ens_to_prob_kde(ens, over=None, below=None, bandwidth=None, kernel=None,
     spread = vmax - vmin
     
     x = np.linspace(vmin - spread * spread_multiplier, below, samples) \
-        if over is None else np.linspace(over, vmax + spread * spread_multiplier, samples)
         
     interval = x[1] - x[0]
     x = x.reshape(-1, 1)
@@ -120,19 +121,31 @@ def ens_to_prob_kde(ens, over=None, below=None, bandwidth=None, kernel=None,
     return np.sum(np.exp(kde.score_samples(x))) * interval
 
 
-def ens_to_prob_moments(ens, over=None, below=None, pbar=None, axis=None):
-    
-    if pbar is not None:
-        pbar.update(1)
-    
-    if over is None:
-        return np.count_nonzero(ens <= below, axis=axis) / (len(ens) if axis is None else ens.shape[axis])
-    else:
-        return np.count_nonzero(ens >= over, axis=axis) / (len(ens)  if axis is None else ens.shape[axis])
+def ens_to_prob_moments(ens, pbar=None):
+    if pbar is not None: pbar.update(1)
+    return np.count_nonzero(ens[1:] <= ens[0], axis=0) / (ens.shape[0] - 1)
 
 
 def ens_to_prob(f, ensemble_aixs, over=None, below=None):
     assert (over is None) ^ (below is None), 'Must specify over or below'
+    if below is None: return 1 - ens_to_prob(f, ensemble_aixs, below=over)
+    
+    if isinstance(below, np.ndarray):
+        assert below.shape == tuple(np.delete(f.shape, ensemble_aixs))
+    else:
+        assert not hasattr(below, '__len__'), 'below/over could either be an numpy array or a scalar'
+        below = np.full(np.delete(f.shape, ensemble_aixs), below)
+    
+    # At this point, below has the same dimensions as f except for having length of 1 for the ensemble axis
+    below = np.expand_dims(below, ensemble_aixs)
+    
+    # Merge below and f so that it is easier for later processing
+    # Now, along the ensemble axis (first axis), the first value
+    # is the threshold, and the rest of the values are actual members
+    #
+    f = np.concatenate([below, f], axis=ensemble_aixs)
+    f = np.moveaxis(f, ensemble_aixs, 0)
+    print(f.shape)
     
     cores = int(os.environ['pyanen_tqdm_workers'])
     
@@ -143,10 +156,10 @@ def ens_to_prob(f, ensemble_aixs, over=None, below=None):
                     leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
                     desc='KDE') as pbar:
                 
-                ret = np.apply_along_axis(ens_to_prob_kde, ensemble_aixs, f, over=over, below=below, pbar=pbar)
+                ret = np.apply_along_axis(ens_to_prob_kde, 0, f, pbar=pbar)
                 
         elif os.environ['pyanen_ens_to_prob_method'] == 'moments':
-            ret = ens_to_prob_moments(f, over=over, below=below, axis=ensemble_aixs)
+            ret = ens_to_prob_moments(f)
             
         else:
             msg = 'Unknown method for converting ensembles to probability. ' + \
@@ -163,19 +176,16 @@ def ens_to_prob(f, ensemble_aixs, over=None, below=None):
                 'Got {}. Expect one of [kde, moments]'.format(os.environ['pyanen_ens_to_prob_method'])
             raise Exception(msg)
         
-        # Move axis
-        f = np.moveaxis(f, ensemble_aixs, 0)
-        
-        n_members = f.shape[0]
+        n_members_plus_one = f.shape[0]
         f_shape = f.shape[1:]
         
-        f = f.reshape(n_members, -1)
+        f = f.reshape(n_members_plus_one, -1)
         
         chunksize = 1000 # int(os.environ['pyanen_tqdm_chunksize'])
         parallelize_axis = -1 # int(os.environ['pyanen_tqdm_map_axis'])
         assert parallelize_axis == -1, 'parallelize_axis needs to be -1 for the ens_to_prob operation. Got {}'.format(parallelize_axis)
         
-        ret = process_map(partial(transfer_func, over=over, below=below),
+        ret = process_map(transfer_func,
                           np.split(f, f.shape[parallelize_axis], parallelize_axis),
                           disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
                           leave=util.strtobool(os.environ['pyanen_tqdm_leave']),

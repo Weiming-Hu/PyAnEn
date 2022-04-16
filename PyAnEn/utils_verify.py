@@ -145,7 +145,6 @@ def ens_to_prob(f, ensemble_aixs, over=None, below=None):
     #
     f = np.concatenate([below, f], axis=ensemble_aixs)
     f = np.moveaxis(f, ensemble_aixs, 0)
-    print(f.shape)
     
     cores = int(os.environ['pyanen_tqdm_workers'])
     

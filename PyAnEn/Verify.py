@@ -59,23 +59,23 @@ class Verify:
     # Metric Methods #
     ##################
     
-    def corr(self, save_name=None): return self._metric_workflow_1(save_name, self._corr)
-    def brier_decomp(self, over=None, below=None, save_name=None): return self._metric_workflow_1(save_name, self._brier_decomp, over=over, below=below)
+    def corr(self, save_name=None): return self._metric_workflow_1(self.to_name(save_name), self._corr)
+    def brier_decomp(self, over=None, below=None, save_name=None): return self._metric_workflow_1(self.to_name(save_name, over=over, below=below), self._brier_decomp, over=over, below=below)
     
-    def rank_hist(self, save_name='rank'): return self._metric_workflow_1(save_name, self._rank_hist)
-    def variance(self, save_name='variance'): return self._metric_workflow_1(save_name, self._variance)
-    def f_determ(self, save_name='f_determ'): return self._metric_workflow_1(save_name, self._f_determ)
+    def rank_hist(self, save_name='rank'): return self._metric_workflow_1(self.to_name(save_name), self._rank_hist)
+    def variance(self, save_name='variance'): return self._metric_workflow_1(self.to_name(save_name), self._variance)
+    def f_determ(self, save_name='f_determ'): return self._metric_workflow_1(self.to_name(save_name), self._f_determ)
     def roc(self, over=None, below=None, save_name='roc'): return self._metric_workflow_1(self.to_name(save_name, over=over, below=below), self._roc, over=over, below=below)
     def sharpness(self, over=None, below=None, save_name='sharpness'): return self._metric_workflow_1(self.to_name(save_name, over=over, below=below), self._sharpness, over=over, below=below)
     def iou_determ(self, over=None, below=None, save_name='iou_determ'): return self._metric_workflow_1(self.to_name(save_name, over=over, below=below), self._iou_determ, over=over, below=below)
     def iou_prob(self, over=None, below=None, save_name='iou_prob'): return self._metric_workflow_1(self.to_name(save_name, over=over, below=below), self._iou_prob, over=over, below=below)
     def cdf(self, over=None, below=None, save_name='cdf'): return self._metric_workflow_1(self.to_name(save_name, over=over, below=below), self._cdf, over=over, below=below)
 
-    def crps(self, save_name='crps'): return self._metric_workflow_2(save_name, self._crps)
-    def error(self, save_name='error'): return self._metric_workflow_2(save_name, self._error)
-    def spread(self, save_name='spread'): return self._metric_workflow_2(save_name, self._spread)
-    def sq_error(self, save_name='sq_error'): return self._metric_workflow_2(save_name, self._sq_error)
-    def ab_error(self, save_name='ab_error'): return self._metric_workflow_2(save_name, self._ab_error)
+    def crps(self, save_name='crps'): return self._metric_workflow_2(self.to_name(save_name), self._crps)
+    def error(self, save_name='error'): return self._metric_workflow_2(self.to_name(save_name), self._error)
+    def spread(self, save_name='spread'): return self._metric_workflow_2(self.to_name(save_name), self._spread)
+    def sq_error(self, save_name='sq_error'): return self._metric_workflow_2(self.to_name(save_name), self._sq_error)
+    def ab_error(self, save_name='ab_error'): return self._metric_workflow_2(self.to_name(save_name), self._ab_error)
     def brier(self, over=None, below=None, save_name='brier'): return self._metric_workflow_2(self.to_name(save_name, over=over, below=below), self._brier, over=over, below=below)
     
     def reliability(self, nbins=15, over=None, below=None, save_name='rel'): return self._metric_workflow_3(self.to_name(save_name, nbins=nbins, over=over, below=below), self._reliability, self.post_reliability, nbins=nbins, over=over, below=below)

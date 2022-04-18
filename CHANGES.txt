@@ -1,3 +1,7 @@
+# PyAnEn 0.4.9
+
+- Added Diebold Mariano significance test
+
 # PyAnEn 0.4.8
 
 - Added correlation and brier decomposition

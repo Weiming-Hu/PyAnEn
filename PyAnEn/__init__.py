@@ -1,11 +1,14 @@
 import os
 
 from .version import __version__
+
 from .VerifyDeterm import VerifyDeterm
 from .VerifyEnsemble import VerifyEnsemble
 from .VerifyProbGamma import VerifyProbGamma
 from .VerifyProbGaussian import VerifyProbGaussian
 from .VerifyProbGammaHurdle import VerifyProbGammaHurdle
+
+from .utils_significance import diebold_mariano_test
 
 __title__ = "PyAnEn"
 __author__ = "Weiming Hu"

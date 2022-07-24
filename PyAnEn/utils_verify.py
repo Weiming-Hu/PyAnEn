@@ -394,9 +394,9 @@ def reliability_diagram(f_prob, o_binary, nbins,
 # Functions for Spread Skill Correlation #
 ##########################################
 
-def _binned_spread_skill_create_split(variance, ab_error, nbins, sample_axis):
+def _binned_spread_skill_create_split(variance, sq_error, nbins, sample_axis):
     
-    assert variance.shape == ab_error.shape
+    assert variance.shape == sq_error.shape
     
     if sample_axis is None:
         sample_axis = list(range(len(variance.shape)))
@@ -407,31 +407,34 @@ def _binned_spread_skill_create_split(variance, ab_error, nbins, sample_axis):
     for from_axis in np.sort(sample_axis):
         if from_axis != to_axis:
             variance = np.moveaxis(variance, from_axis, to_axis)
-            ab_error = np.moveaxis(ab_error, from_axis, to_axis)
+            sq_error = np.moveaxis(sq_error, from_axis, to_axis)
         to_axis += 1
 
     shape_to_keep = variance.shape[to_axis:]
     
     # Flatten the sample dimensions and the kept dimensions separately
     variance = variance.reshape(-1, np.prod(shape_to_keep).astype(int))
-    ab_error = ab_error.reshape(-1, np.prod(shape_to_keep).astype(int))
+    sq_error = sq_error.reshape(-1, np.prod(shape_to_keep).astype(int))
     
-    # Sort arrays based on error
+    # Sort arrays based on variance 
     for i in range(variance.shape[1]):
         index_sort = np.argsort(variance[:, i])
         variance[:, i] = variance[index_sort, i]
-        ab_error[:, i] = ab_error[index_sort, i]
+        sq_error[:, i] = sq_error[index_sort, i]
     
     # Combine and split arrays
     # The first column is absolute error
     # The second column is standard deviation
     #
-    assert nbins <= ab_error.shape[0], 'Too many bins ({}) and too few samples ({})'.format(nbins, ab_error.shape[0])
+    assert nbins <= sq_error.shape[0], 'Too many bins ({}) and too few samples ({})'.format(nbins, sq_error.shape[0])
     
-    if nbins * 10 > ab_error.shape[0]:
-        warnings.warn('{} samples and {} bins. Some bins have fewer than 10 samples.'.format(nbins, ab_error.shape[0]))
+    if nbins * 10 > sq_error.shape[0]:
+        warnings.warn('{} samples and {} bins. Some bins have fewer than 10 samples.'.format(nbins, sq_error.shape[0]))
         
-    arr_split = np.array_split(np.stack([np.sqrt(variance), ab_error], axis=1), nbins, 0)
+    # Calculate std
+    std = np.sqrt(variance)
+
+    arr_split = np.array_split(np.stack([std, sq_error], axis=1), nbins, 0)
     
     return arr_split, shape_to_keep
 
@@ -440,7 +443,7 @@ def _binned_spread_skill_agg_no_boot(arr_split, reconstruct_shape, skip_nan=None
     
     if skip_nan is None: skip_nan = util.strtobool(os.environ['pyanen_skip_nan'])
     
-    spreads = []
+    stds = []
     errors = []
     
     for arr in tqdm(arr_split,
@@ -450,21 +453,26 @@ def _binned_spread_skill_agg_no_boot(arr_split, reconstruct_shape, skip_nan=None
         assert len(arr.shape) == 3 and arr.shape[1] == 2
         
         if skip_nan:
-            spreads.append([np.nanmean(arr[:, 0, i]) for i in range(arr.shape[2])])
+            stds.append([np.nanmean(arr[:, 0, i]) for i in range(arr.shape[2])])
             errors.append([np.nanmean(arr[:, 1, i]) for i in range(arr.shape[2])])
         else:
-            spreads.append([arr[:, 0, i].mean() for i in range(arr.shape[2])])
+            stds.append([arr[:, 0, i].mean() for i in range(arr.shape[2])])
             errors.append([arr[:, 1, i].mean() for i in range(arr.shape[2])])
     
-    spreads = np.array(spreads)
+    stds = np.array(stds)
     errors = np.array(errors)
+
+    # Errors here are averaged squared errors.
+    # Need to take the root to be RMSE
+    #
+    rmses = np.sqrt(errors)
     
-    assert errors.shape[1] == spreads.shape[1] == np.prod(reconstruct_shape)
+    assert rmses.shape[1] == stds.shape[1] == np.prod(reconstruct_shape)
     
-    spreads = spreads.reshape(spreads.shape[0], *reconstruct_shape)
-    errors = errors.reshape(errors.shape[0], *reconstruct_shape)
+    stds = stds.reshape(stds.shape[0], *reconstruct_shape)
+    rmses = rmses.reshape(rmses.shape[0], *reconstruct_shape)
     
-    return spreads, errors
+    return stds, rmses
 
 
 def _binned_spread_skill_agg_boot(arr_split, reconstruct_shape,
@@ -475,8 +483,8 @@ def _binned_spread_skill_agg_boot(arr_split, reconstruct_shape,
     if confidence is None: confidence = float(os.environ['pyanen_boot_confidence'])
     if skip_nan is None: skip_nan = util.strtobool(os.environ['pyanen_skip_nan'])
     
-    spreads_ci = []
-    errors_ci = []
+    stds_ci = []
+    rmses_ci = []
     
     nbins = len(arr_split)
     
@@ -488,53 +496,48 @@ def _binned_spread_skill_agg_boot(arr_split, reconstruct_shape,
         pop_size = arr.shape[0]
         
         for dim_i in range(arr.shape[2]):
-            spreads = []
+            stds = []
             errors = []
             
             for _ in range(repeats):
                 idx = np.random.randint(pop_size, size=n_samples)
                 
                 if skip_nan:
-                    spreads.append(np.nanmean(arr[idx, 0, dim_i]))
-                    errors.append(np.nanmean(arr[idx, 1, dim_i]))
+                    stds.append(np.nanmean(arr[idx, 0, dim_i]))
+                    errors.append(np.sqrt(np.nanmean(arr[idx, 1, dim_i])))
                 else:
-                    spreads.append(arr[idx, 0, dim_i].mean())
-                    errors.append(arr[idx, 1, dim_i].mean())
+                    stds.append(arr[idx, 0, dim_i].mean())
+                    errors.append(np.sqrt(arr[idx, 1, dim_i].mean()))
             
-            spread_mean, error_mean  = np.mean(spreads), np.mean(errors)
-            spread_ci = np.quantile(spreads, [1-confidence, confidence])
-            error_ci = np.quantile(errors, [1-confidence, confidence])
+            std_mean, rmse_mean  = np.mean(stds), np.mean(errors)
+            std_ci = np.quantile(stds, [1-confidence, confidence])
+            rmse_ci = np.quantile(errors, [1-confidence, confidence])
             
-            # spread_mean, spread_std = np.mean(spreads), np.std(spreads)
-            # error_mean, error_std = np.mean(errors), np.std(errors)
-            # spread_ci = st.t.interval(alpha=confidence, df=repeats-1, loc=spread_mean, scale=spread_std)
-            # error_ci = st.t.interval(alpha=confidence, df=repeats-1, loc=error_mean, scale=error_std)
-            
-            spreads_ci.append([spread_ci[0], spread_mean, spread_ci[1]])
-            errors_ci.append([error_ci[0], error_mean, error_ci[1]])
+            stds_ci.append([std_ci[0], std_mean, std_ci[1]])
+            rmses_ci.append([rmse_ci[0], rmse_mean, rmse_ci[1]])
         
-    spreads_ci = np.array(spreads_ci)
-    errors_ci = np.array(errors_ci)
+    stds_ci = np.array(stds_ci)
+    rmses_ci = np.array(rmses_ci)
     
-    assert len(spreads_ci.shape) == len(errors_ci.shape) == 2, 'spreads_ci: {}, errors_ci: {}'.format(spreads_ci.shape, errors_ci.shape)
-    assert spreads_ci.shape[0] == errors_ci.shape[0] == np.prod(reconstruct_shape) * nbins, \
-        'Got {}, {}, {}'.format(spreads_ci.shape[0], errors.shape[0], np.prod(reconstruct_shape) * nbins)
+    assert len(stds_ci.shape) == len(rmses_ci.shape) == 2, 'stds_ci: {}, rmses_ci: {}'.format(stds_ci.shape, rmses_ci.shape)
+    assert stds_ci.shape[0] == rmses_ci.shape[0] == np.prod(reconstruct_shape) * nbins, \
+        'Got {}, {}, {}'.format(stds_ci.shape[0], rmses_ci.shape[0], np.prod(reconstruct_shape) * nbins)
     
-    spreads_ci = spreads_ci.reshape(nbins, *reconstruct_shape, 3)
-    errors_ci = errors_ci.reshape(nbins, *reconstruct_shape, 3)
+    stds_ci = stds_ci.reshape(nbins, *reconstruct_shape, 3)
+    rmses_ci = rmses_ci.reshape(nbins, *reconstruct_shape, 3)
     
-    spreads_ci = np.moveaxis(spreads_ci, -1, 0)
-    errors_ci = np.moveaxis(errors_ci, -1, 0)
+    stds_ci = np.moveaxis(stds_ci, -1, 0)
+    rmses_ci = np.moveaxis(rmses_ci, -1, 0)
     
-    return spreads_ci, errors_ci
+    return stds_ci, rmses_ci
 
 
 def binned_spread_skill(
-    variance, ab_error, nbins, sample_axis,
+    variance, sq_error, nbins, sample_axis,
     boot_samples=None, repeats=None, confidence=None, skip_nan=None):
     
     arr_split, shape_to_keep = _binned_spread_skill_create_split(
-        variance=variance, ab_error=ab_error,
+        variance=variance, sq_error=sq_error,
         nbins=nbins, sample_axis=sample_axis)
     
     if boot_samples is None:

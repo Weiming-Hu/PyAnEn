@@ -126,10 +126,10 @@ class VerifyProb(Verify):
         # Calculate variances and squared errors
         # Not using the public calls (self.variance and self.ab_error) because no aggregation is needed!
         #
-        ab_error = self._metric_workflow_1('ab_error', self._ab_error)
         variance = self._metric_workflow_1('variance', self._variance)
+        sq_error = self._metric_workflow_1('sq_error', self._sq_error)
         
-        return _binned_spread_skill_create_split(variance, ab_error, nbins=nbins, sample_axis=self.avg_axis)
+        return _binned_spread_skill_create_split(variance, sq_error, nbins=nbins, sample_axis=self.avg_axis)
     
     def _reliability(self, nbins=15, over=None, below=None):
         

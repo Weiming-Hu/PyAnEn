@@ -233,7 +233,7 @@ class Integration:
     
     def _initialize_memmap(self, memmap_shape):
         if self.less_memory:
-            self.memmap_arr_str = os.path.join(self.memmap_dir, '__numerical_integration__.dat')
+            self.memmap_arr_str = os.path.join(self.memmap_dir, '__pyanen_numerical_integration__.dat')
             self.memmap_shape = memmap_shape
             
             self.memmap_arr_w = np.memmap(

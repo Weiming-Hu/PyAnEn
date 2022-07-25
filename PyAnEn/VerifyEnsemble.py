@@ -128,7 +128,7 @@ class VerifyEnsemble(Verify):
     def _binned_spread_skill(self, nbins=15):
         
         # Calculate variances and squared errors
-        # Not using the public calls (self.variance and self.ab_error) because no aggregation is needed!
+        # Not using the public calls (self.variance and self.sq_error) because no aggregation is needed!
         #
         variance = self._metric_workflow_1('variance', self._variance)
         sq_error = self._metric_workflow_1('sq_error', self._sq_error)

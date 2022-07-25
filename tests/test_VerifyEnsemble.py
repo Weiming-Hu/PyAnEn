@@ -84,9 +84,9 @@ def test_spread_skill():
                 spread1, skill1 = verify1.binned_spread_skill(nbins=4)
                 spread2, skill2 = verify2.binned_spread_skill(nbins=4)
         
-        assert spread2.shape[0] == skill2.shape[0] == 3
-        assert spread1.shape == spread2.shape[1:]
-        assert skill1.shape == skill2.shape[1:]
+        assert spread2.shape[-1] == skill2.shape[-1] == 3
+        assert spread1.shape == spread2.shape[:-1]
+        assert skill1.shape == skill2.shape[:-1]
 
 
 def test_brier():
@@ -145,7 +145,7 @@ def test_avg_axis():
         r2 = verify2.binned_spread_skill()
         r3 = verify3.binned_spread_skill()
         
-        assert np.all(r1[0][:, slice_idx] == r2[0]), 'Failed at spread skill {} with {}'.format(tag, avg_axis)
+        assert np.all(r1[0][slice_idx, :] == r2[0]), 'Failed at spread skill {} with {}'.format(tag, avg_axis)
         assert np.all(r2[0] == r3[0]), 'Failed at spread skill {} with {}'.format(tag, avg_axis)
     
     # Evaluate testing routine

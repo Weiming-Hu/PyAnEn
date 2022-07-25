@@ -259,7 +259,7 @@ def boot_arr(metric, sample_axis, n_samples=None, repeats=None, confidence=None)
     if sample_axis is None:
         sample_axis = list(range(len(metric.shape)))
     
-    # Move average axis to the beginning
+    # Move sample axis to the beginning
     to_axis = 0
 
     for from_axis in np.sort(sample_axis):
@@ -294,13 +294,28 @@ def boot_arr(metric, sample_axis, n_samples=None, repeats=None, confidence=None)
 # https://github.com/scikit-learn/scikit-learn/blob/37ac6788c9504ee409b75e5e24ff7d86c90c2ffb/sklearn/calibration.py#L869
 #
 
-def _reliability_split(f_prob, o_binary, nbins):
+def _reliability_create_split(f_prob, o_binary, nbins, sample_axis=None):
     
+    if sample_axis is None:
+        sample_axis = list(range(len(o_binary.shape)))
+
     assert f_prob.shape == o_binary.shape
+    assert hasattr(sample_axis, '__len__'), 'sample_axis must be an array-like object!'
+
+    # Move sample axis to the beginning
+    to_axis = 0
+
+    for from_axis in np.sort(sample_axis):
+        if from_axis != to_axis:
+            f_prob = np.moveaxis(f_prob, from_axis, to_axis)
+            o_binary = np.moveaxis(o_binary, from_axis, to_axis)
+        to_axis += 1
+
+    shape_to_keep = f_prob.shape[to_axis:]
     
-    # Flatten
-    f_prob = f_prob.flatten()
-    o_binary = o_binary.flatten()
+    # Flatten the sample dimensions and the kept dimensions separately
+    f_prob = f_prob.reshape(-1, *shape_to_keep)
+    o_binary = o_binary.reshape(-1, *shape_to_keep)
     
     # Split array for reliability diagram
     bins = np.linspace(0.0, 1.0 + 1e-8, nbins + 1)
@@ -308,7 +323,8 @@ def _reliability_split(f_prob, o_binary, nbins):
     
     return binids, f_prob, o_binary, bins
 
-def _reliability_agg_no_boot(binids, y_prob, y_true, bins):
+
+def _reliability_agg_no_boot_slice(binids, y_prob, y_true, bins):
 
     bin_sums = np.bincount(binids, weights=y_prob, minlength=len(bins))
     bin_true = np.bincount(binids, weights=y_true, minlength=len(bins))
@@ -324,8 +340,46 @@ def _reliability_agg_no_boot(binids, y_prob, y_true, bins):
     
     return prob_pred, prob_true, counts.sort_index()
 
-def _reliability_agg_boot(binids, y_prob, y_true, bins,
-                          n_samples=None, repeats=None, confidence=None, skip_nan=None):
+
+def _reliability_agg_no_boot(binids, y_prob, y_true, bins):
+
+    if len(y_true.shape) == 1:
+        return _reliability_agg_no_boot_slice(binids, y_prob, y_true, bins)
+
+    else:
+        # Initialization
+        probs_pred, probs_true, counts = [], [], []
+        
+        # Reshape data arrays to two-dimensional arrays with [samples, collapsed dimensions to be kept]
+        shape_to_keep = y_true.shape[1:]
+
+        binids = binids.reshape(-1, np.prod(shape_to_keep).astype(int))
+        y_prob = y_prob.reshape(-1, np.prod(shape_to_keep).astype(int))
+        y_true = y_true.reshape(-1, np.prod(shape_to_keep).astype(int))
+
+        # Process each collapsed slice sequentially
+        for i in tqdm(range(binids.shape[1]),
+                      disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
+                      leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
+                      desc='Reliability aggregation'):
+
+            prob_pred, prob_true, count = _reliability_agg_no_boot_slice(
+                binids[:, i], y_prob[:, i], y_true[:, i], bins)
+            
+            probs_pred.append(prob_pred)
+            probs_true.append(prob_true)
+            counts.append(count.to_numpy())
+
+        # Reconstruct the collapsed dimensions
+        probs_pred = np.array(probs_pred).reshape(*shape_to_keep, -1)
+        probs_true = np.array(probs_true).reshape(*shape_to_keep, -1)
+        counts = np.array(counts).reshape(*shape_to_keep, -1)
+
+        return probs_pred, probs_true, counts
+
+
+def _reliability_agg_boot_slice(binids, y_prob, y_true, bins,
+                                n_samples=None, repeats=None, confidence=None, skip_nan=None):
     
     if n_samples is None: n_samples = int(os.environ['pyanen_boot_samples'])
     if repeats is None: repeats = int(os.environ['pyanen_boot_repeats'])
@@ -374,12 +428,50 @@ def _reliability_agg_boot(binids, y_prob, y_true, bins,
     return np.array(probs_pred), np.array(probs_true), counts.sort_index()
 
 
-def reliability_diagram(f_prob, o_binary, nbins, 
+def _reliability_agg_boot(binids, y_prob, y_true, bins,
+                          n_samples=None, repeats=None, confidence=None, skip_nan=None):
+
+    if len(y_true.shape) == 1:
+        return _reliability_agg_boot_slice(binids, y_prob, y_true, bins, n_samples, repeats, confidence, skip_nan)
+
+    else:
+        # Initialization
+        probs_pred, probs_true, counts = [], [], []
+        
+        # Reshape data arrays to two-dimensional arrays with [samples, collapsed dimensions to be kept]
+        shape_to_keep = y_true.shape[1:]
+
+        binids = binids.reshape(-1, np.prod(shape_to_keep).astype(int))
+        y_prob = y_prob.reshape(-1, np.prod(shape_to_keep).astype(int))
+        y_true = y_true.reshape(-1, np.prod(shape_to_keep).astype(int))
+
+        # Process each collapsed slice sequentially
+        for i in tqdm(range(binids.shape[1]),
+                      disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
+                      leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
+                      desc='Reliability aggregation'):
+
+            prob_pred, prob_true, count = _reliability_agg_boot_slice(
+                binids[:, i], y_prob[:, i], y_true[:, i], bins, n_samples, repeats, confidence, skip_nan)
+            
+            probs_pred.append(prob_pred)
+            probs_true.append(prob_true)
+            counts.append(count.to_numpy())
+
+        # Reconstruct the collapsed dimensions
+        probs_pred = np.array(probs_pred).reshape(*shape_to_keep, -1, 3)
+        probs_true = np.array(probs_true).reshape(*shape_to_keep, -1, 3)
+        counts = np.array(counts).reshape(*shape_to_keep, -1, 3)
+
+        return probs_pred, probs_true, counts
+
+
+def reliability_diagram(f_prob, o_binary, nbins, sample_axis,
                         boot_samples=None, repeats=None,
                         confidence=None, skip_nan=None):
     
-    binids, f_prob, o_binary, bins = _reliability_split(
-        f_prob=f_prob, o_binary=o_binary, nbins=nbins)
+    binids, f_prob, o_binary, bins = _reliability_create_split(
+        f_prob=f_prob, o_binary=o_binary, nbins=nbins, sample_axis=sample_axis)
     
     if boot_samples is None:
         return _reliability_agg_no_boot(
@@ -396,12 +488,13 @@ def reliability_diagram(f_prob, o_binary, nbins,
 
 def _binned_spread_skill_create_split(variance, sq_error, nbins, sample_axis):
     
-    assert variance.shape == sq_error.shape
-    
     if sample_axis is None:
         sample_axis = list(range(len(variance.shape)))
     
-    # Move average axis to the beginning
+    assert variance.shape == sq_error.shape
+    assert hasattr(sample_axis, '__len__'), 'sample_axis must be an array-like object!'
+
+    # Move sample axis to the beginning
     to_axis = 0
 
     for from_axis in np.sort(sample_axis):
@@ -471,6 +564,10 @@ def _binned_spread_skill_agg_no_boot(arr_split, reconstruct_shape, skip_nan=None
     
     stds = stds.reshape(stds.shape[0], *reconstruct_shape)
     rmses = rmses.reshape(rmses.shape[0], *reconstruct_shape)
+
+    # Transpose dimensions so that the dimensions to keep are at the beginning
+    stds = np.moveaxis(stds, 0, -1)
+    rmses = np.moveaxis(rmses, 0, -1)
     
     return stds, rmses
 
@@ -526,8 +623,9 @@ def _binned_spread_skill_agg_boot(arr_split, reconstruct_shape,
     stds_ci = stds_ci.reshape(nbins, *reconstruct_shape, 3)
     rmses_ci = rmses_ci.reshape(nbins, *reconstruct_shape, 3)
     
-    stds_ci = np.moveaxis(stds_ci, -1, 0)
-    rmses_ci = np.moveaxis(rmses_ci, -1, 0)
+    # Transpose dimensions so that the dimensions to keep are at the beginning
+    stds_ci = np.moveaxis(stds_ci, 0, -2)
+    rmses_ci = np.moveaxis(rmses_ci, 0, -2)
     
     return stds_ci, rmses_ci
 

@@ -7,6 +7,8 @@ from ranky import rankz
 from PyAnEn.utils_verify import iou_determ
 from PyAnEn.utils_verify import ens_to_prob
 from PyAnEn.utils_verify import rank_histogram
+from PyAnEn.utils_verify import binned_spread_skill
+from PyAnEn.utils_verify import reliability_diagram
 
 
 def test_RankHist():
@@ -127,4 +129,81 @@ def test_DetermIOU():
     ])
     
     assert iou_determ(f=f, o=o, over=6) == 2/9
+    
+    
+def test_Reliability():
+
+    # Initialization
+    f_prob = np.random.rand(4, 1000, 2, 3)
+    o_binary = np.random.rand(4, 1000, 2, 3)
+    nbins = 15
+    
+    ###########
+    # No Boot #
+    ###########
+
+    # Global
+    ret_global = reliability_diagram(f_prob, o_binary, nbins, [1])
+    
+    assert len(ret_global) == 3
+    assert ret_global[0].shape[-1] == nbins
+    assert ret_global[1].shape[-1] == nbins
+
+    for i in range(4):
+        for j in range(2):
+            for k in range(3):
+                ret_slice = reliability_diagram(f_prob[i, :, j, k], o_binary[i, :, j, k], nbins, None)
+                
+                assert np.all(ret_global[0][i, j, k] == ret_slice[0])
+                assert np.all(ret_global[1][i, j, k] == ret_slice[1])
+                assert np.all(ret_global[2][i, j, k] == ret_slice[2].to_numpy())
+            
+    ######## 
+    # Boot #
+    ######## 
+    
+    # Only testing dimensions   
+    ret_global = reliability_diagram(f_prob, o_binary, nbins, [1], boot_samples=50)
+    
+    assert len(ret_global) == 3
+    assert ret_global[0].shape[-1] == 3
+    assert ret_global[1].shape[-1] == 3
+    assert ret_global[0].shape[-2] == nbins
+    assert ret_global[1].shape[-2] == nbins
+                
+                
+def test_BinnedSpreadSkill():
+
+    # Initialization
+    variance = np.random.rand(4, 1000, 2, 3)
+    sq_error = np.random.rand(4, 1000, 2, 3)
+    nbins = 15
+
+    # Global
+    ret_global = binned_spread_skill(variance, sq_error, nbins, [1])
+    
+    assert len(ret_global) == 2
+    assert ret_global[0].shape[-1] == nbins
+    assert ret_global[1].shape[-1] == nbins
+
+    for i in range(4):
+        for j in range(2):
+            for k in range(3):
+                ret_slice = binned_spread_skill(variance[i, :, j, k], sq_error[i, :, j, k], nbins, None)
+                
+                assert np.all(ret_global[0][i, j, k] == ret_slice[0])
+                assert np.all(ret_global[1][i, j, k] == ret_slice[1])
+            
+    ######## 
+    # Boot #
+    ######## 
+    
+    # Only testing dimensions   
+    ret_global = reliability_diagram(variance, sq_error, nbins, [1], boot_samples=50)
+    
+    assert len(ret_global) == 3
+    assert ret_global[0].shape[-1] == 3
+    assert ret_global[1].shape[-1] == 3
+    assert ret_global[0].shape[-2] == nbins
+    assert ret_global[1].shape[-2] == nbins
     

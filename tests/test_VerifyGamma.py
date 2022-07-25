@@ -81,7 +81,7 @@ def test_avg_axis():
         r2 = verify2.binned_spread_skill(nbins=10)
         r3 = verify3.binned_spread_skill(nbins=10)
         
-        assert np.all(r1[0][:, slice_idx] == r2[0]), 'Failed at spread skill {} with {}'.format(tag, avg_axis)
+        assert np.all(r1[0][slice_idx, :] == r2[0]), 'Failed at spread skill {} with {}'.format(tag, avg_axis)
         assert np.all(r2[0] == r3[0]), 'Failed at spread skill {} with {}'.format(tag, avg_axis)
     
     # Evaluate testing routine

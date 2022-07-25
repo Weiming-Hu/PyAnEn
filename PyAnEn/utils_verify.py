@@ -431,7 +431,7 @@ def _binned_spread_skill_create_split(variance, sq_error, nbins, sample_axis):
     if nbins * 10 > sq_error.shape[0]:
         warnings.warn('{} samples and {} bins. Some bins have fewer than 10 samples.'.format(nbins, sq_error.shape[0]))
         
-    arr_split = np.array_split(np.stack([std, sq_error], axis=1), nbins, 0)
+    # Calculate standard deviation as the ensemble spread via variance
     std = np.sqrt(variance)
 
     arr_split = np.array_split(np.stack([std, sq_error], axis=1), nbins, 0)

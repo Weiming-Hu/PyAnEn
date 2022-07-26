@@ -124,8 +124,13 @@ def test_reliability():
     verifier_no_boot = VerifyProbGamma(f=f, o=o)
     verifier_boot = VerifyProbGamma(f=f, o=o, boot_samples=100)
     
-    y_pred1, y_true1, counts1 = verifier_no_boot.reliability(over=1)
-    y_pred2, y_true2, counts2 = verifier_boot.reliability(over=1)
+    y_pred1, y_true1, counts1, true_count1 = verifier_no_boot.reliability(over=0.5)
+    y_pred2, y_true2, counts2, true_count2 = verifier_boot.reliability(over=0.5)
+
+    print(y_pred1.shape)
+    print(y_true1.shape)
+    print(y_pred2.shape)
+    print(y_true2.shape)
     
     mask = np.isfinite(y_pred1)
     y_pred1, y_pred2 = y_pred1[mask], y_pred2[mask, :]
@@ -135,11 +140,12 @@ def test_reliability():
     
     assert len(y_pred1.shape) == len(y_true1.shape) == 1
     assert len(y_pred2.shape) == len(y_pred2.shape) == 2
-    assert np.all(y_pred2[:, 0] <= y_pred1)
-    assert np.all(y_pred1 <= y_pred2[:, 2])
-    assert np.all(y_true2[:, 0] <= y_true1)
-    assert np.all(y_true1 <= y_true2[:, 2])
+    assert np.all(y_pred2[:, 0] <= y_pred1 + 1e-5)
+    assert np.all(y_pred1 <= y_pred2[:, 2] + 1e-5)
+    assert np.all(y_true2[:, 0] <= y_true1 + 1e-5)
+    assert np.all(y_true1 <= y_true2[:, 2] + 1e-5)
     assert np.all(counts1 == counts2)
+    assert np.all(true_count1 == true_count2)
 
 def test_pit():
     mu, sigma, arr_size = 10, 3, (30, 40, 50)

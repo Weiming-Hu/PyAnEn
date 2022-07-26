@@ -145,7 +145,7 @@ def test_Reliability():
     # Global
     ret_global = reliability_diagram(f_prob, o_binary, nbins, [1])
     
-    assert len(ret_global) == 3
+    assert len(ret_global) == 4
     assert ret_global[0].shape[-1] == nbins
     assert ret_global[1].shape[-1] == nbins
 
@@ -165,7 +165,7 @@ def test_Reliability():
     # Only testing dimensions   
     ret_global = reliability_diagram(f_prob, o_binary, nbins, [1], boot_samples=50)
     
-    assert len(ret_global) == 3
+    assert len(ret_global) == 4
     assert ret_global[0].shape[-1] == 3
     assert ret_global[1].shape[-1] == 3
     assert ret_global[0].shape[-2] == nbins
@@ -201,7 +201,7 @@ def test_BinnedSpreadSkill():
     # Only testing dimensions   
     ret_global = reliability_diagram(variance, sq_error, nbins, [1], boot_samples=50)
     
-    assert len(ret_global) == 3
+    assert len(ret_global) == 4
     assert ret_global[0].shape[-1] == 3
     assert ret_global[1].shape[-1] == 3
     assert ret_global[0].shape[-2] == nbins

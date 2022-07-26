@@ -332,13 +332,16 @@ def _reliability_agg_no_boot_slice(binids, y_prob, y_true, bins):
     
     nonzero = bin_total != 0
     
-    prob_true = bin_true[nonzero] / bin_total[nonzero]
     prob_pred = bin_sums[nonzero] / bin_total[nonzero]
+    prob_true = bin_true[nonzero] / bin_total[nonzero]
     
-    counts = pd.value_counts(binids)
-    counts.name = 'Samples in each bin'
+    pred_count = pd.value_counts(binids.flatten()).sort_index()
+    true_count = pd.value_counts(y_true.astype(int).flatten()).sort_index()
+
+    pred_count.name = 'Samples in each bin'
+    true_count.name = 'Samples in each bin'
     
-    return prob_pred, prob_true, counts.sort_index()
+    return prob_pred, prob_true, pred_count, true_count
 
 
 def _reliability_agg_no_boot(binids, y_prob, y_true, bins):
@@ -348,7 +351,7 @@ def _reliability_agg_no_boot(binids, y_prob, y_true, bins):
 
     else:
         # Initialization
-        probs_pred, probs_true, counts = [], [], []
+        probs_pred, probs_true, pred_counts, true_counts = [], [], [], []
         
         # Reshape data arrays to two-dimensional arrays with [samples, collapsed dimensions to be kept]
         shape_to_keep = y_true.shape[1:]
@@ -363,19 +366,21 @@ def _reliability_agg_no_boot(binids, y_prob, y_true, bins):
                       leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
                       desc='Reliability aggregation'):
 
-            prob_pred, prob_true, count = _reliability_agg_no_boot_slice(
+            prob_pred, prob_true, pred_count, true_count = _reliability_agg_no_boot_slice(
                 binids[:, i], y_prob[:, i], y_true[:, i], bins)
             
             probs_pred.append(prob_pred)
             probs_true.append(prob_true)
-            counts.append(count.to_numpy())
+            pred_counts.append(pred_count.to_numpy())
+            true_counts.append(true_count.to_numpy())
 
         # Reconstruct the collapsed dimensions
         probs_pred = np.array(probs_pred).reshape(*shape_to_keep, -1)
         probs_true = np.array(probs_true).reshape(*shape_to_keep, -1)
-        counts = np.array(counts).reshape(*shape_to_keep, -1)
+        pred_counts = np.array(pred_counts).reshape(*shape_to_keep, -1)
+        true_counts = np.array(true_counts).reshape(*shape_to_keep, -1)
 
-        return probs_pred, probs_true, counts
+        return probs_pred, probs_true, pred_counts, true_counts
 
 
 def _reliability_agg_boot_slice(binids, y_prob, y_true, bins,
@@ -422,10 +427,16 @@ def _reliability_agg_boot_slice(binids, y_prob, y_true, bins,
     probs_pred = [probs_pred[i] for i in range(len(bins)) if nonzero[i]]
     probs_true = [probs_true[i] for i in range(len(bins)) if nonzero[i]]
 
-    counts = pd.value_counts(binids)
-    counts.name = 'Samples in each bin'
+    probs_pred = np.array(probs_pred)
+    probs_true = np.array(probs_true)
 
-    return np.array(probs_pred), np.array(probs_true), counts.sort_index()
+    pred_counts = pd.value_counts(binids.flatten()).sort_index()
+    true_counts = pd.value_counts(y_true.astype(int).flatten()).sort_index()
+
+    pred_counts.name = 'Samples in each bin'
+    true_counts.name = 'Samples in each bin'
+
+    return probs_pred, probs_true, pred_counts, true_counts
 
 
 def _reliability_agg_boot(binids, y_prob, y_true, bins,
@@ -436,7 +447,7 @@ def _reliability_agg_boot(binids, y_prob, y_true, bins,
 
     else:
         # Initialization
-        probs_pred, probs_true, counts = [], [], []
+        probs_pred, probs_true, pred_counts, true_counts = [], [], [], []
         
         # Reshape data arrays to two-dimensional arrays with [samples, collapsed dimensions to be kept]
         shape_to_keep = y_true.shape[1:]
@@ -451,19 +462,21 @@ def _reliability_agg_boot(binids, y_prob, y_true, bins,
                       leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
                       desc='Reliability aggregation'):
 
-            prob_pred, prob_true, count = _reliability_agg_boot_slice(
+            prob_pred, prob_true, pred_count, true_count = _reliability_agg_boot_slice(
                 binids[:, i], y_prob[:, i], y_true[:, i], bins, n_samples, repeats, confidence, skip_nan)
             
             probs_pred.append(prob_pred)
             probs_true.append(prob_true)
-            counts.append(count.to_numpy())
+            pred_counts.append(pred_count.to_numpy())
+            true_counts.append(true_count.to_numpy())
 
         # Reconstruct the collapsed dimensions
         probs_pred = np.array(probs_pred).reshape(*shape_to_keep, -1, 3)
         probs_true = np.array(probs_true).reshape(*shape_to_keep, -1, 3)
-        counts = np.array(counts).reshape(*shape_to_keep, -1)
+        pred_counts = np.array(pred_counts).reshape(*shape_to_keep, -1)
+        true_counts = np.array(true_counts).reshape(*shape_to_keep, -1)
 
-        return probs_pred, probs_true, counts
+        return probs_pred, probs_true, pred_counts, true_counts
 
 
 def reliability_diagram(f_prob, o_binary, nbins, sample_axis,

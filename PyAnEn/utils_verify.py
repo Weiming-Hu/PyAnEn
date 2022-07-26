@@ -461,7 +461,7 @@ def _reliability_agg_boot(binids, y_prob, y_true, bins,
         # Reconstruct the collapsed dimensions
         probs_pred = np.array(probs_pred).reshape(*shape_to_keep, -1, 3)
         probs_true = np.array(probs_true).reshape(*shape_to_keep, -1, 3)
-        counts = np.array(counts).reshape(*shape_to_keep, -1, 3)
+        counts = np.array(counts).reshape(*shape_to_keep, -1)
 
         return probs_pred, probs_true, counts
 

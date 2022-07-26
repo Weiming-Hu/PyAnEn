@@ -137,7 +137,7 @@ class VerifyProb(Verify):
         f_prob = self.cdf(over=over, below=below)
         o_binary = binarize_obs(self.o, over=over, below=below)
         
-        return _reliability_create_split(f_prob, o_binary, nbins)
+        return _reliability_create_split(f_prob, o_binary, nbins, sample_axis=self.avg_axis)
     
     def _roc(self, over=None, below=None):
         

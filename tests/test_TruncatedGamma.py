@@ -1,7 +1,7 @@
 import numpy as np
 
 from scipy import stats
-from PyAnEn.dist_TruncatedGamma import truncgamma_gen
+from PyAnEn.dist_truncgamma import truncgamma_gen
 
 
 def test_gamma():

@@ -4,10 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from ranky import rankz
+from PyAnEn.utils_ss import binned_spread_skill
 from PyAnEn.utils_verify import iou_determ
 from PyAnEn.utils_verify import ens_to_prob
 from PyAnEn.utils_verify import rank_histogram
-from PyAnEn.utils_verify import binned_spread_skill
 from PyAnEn.utils_verify import reliability_diagram
 
 

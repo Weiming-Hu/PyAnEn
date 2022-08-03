@@ -15,7 +15,6 @@
 #
 
 import os
-import warnings
 
 import numpy as np
 import pandas as pd
@@ -24,7 +23,6 @@ from scipy import stats
 from distutils import util
 from tqdm.auto import tqdm
 from sklearn import metrics
-from functools import partial
 from sklearn.neighbors import KernelDensity
 from tqdm.contrib.concurrent import process_map
 
@@ -495,173 +493,6 @@ def reliability_diagram(f_prob, o_binary, nbins, sample_axis,
             boot_samples, repeats, confidence, skip_nan)
     
 
-##########################################
-# Functions for Spread Skill Correlation #
-##########################################
-
-def _binned_spread_skill_create_split(variance, sq_error, nbins, sample_axis):
-    
-    if sample_axis is None:
-        sample_axis = list(range(len(variance.shape)))
-    
-    assert variance.shape == sq_error.shape
-    assert hasattr(sample_axis, '__len__'), 'sample_axis must be an array-like object!'
-
-    # Move sample axis to the beginning
-    to_axis = 0
-
-    for from_axis in np.sort(sample_axis):
-        if from_axis != to_axis:
-            variance = np.moveaxis(variance, from_axis, to_axis)
-            sq_error = np.moveaxis(sq_error, from_axis, to_axis)
-        to_axis += 1
-
-    shape_to_keep = variance.shape[to_axis:]
-    
-    # Flatten the sample dimensions and the kept dimensions separately
-    variance = variance.reshape(-1, np.prod(shape_to_keep).astype(int))
-    sq_error = sq_error.reshape(-1, np.prod(shape_to_keep).astype(int))
-    
-    # Sort arrays based on variance 
-    for i in range(variance.shape[1]):
-        index_sort = np.argsort(variance[:, i])
-        variance[:, i] = variance[index_sort, i]
-        sq_error[:, i] = sq_error[index_sort, i]
-    
-    # Combine and split arrays
-    # The first column is absolute error
-    # The second column is standard deviation
-    #
-    assert nbins <= sq_error.shape[0], 'Too many bins ({}) and too few samples ({})'.format(nbins, sq_error.shape[0])
-    
-    if nbins * 10 > sq_error.shape[0]:
-        warnings.warn('{} samples and {} bins. Some bins have fewer than 10 samples.'.format(nbins, sq_error.shape[0]))
-        
-    # Calculate standard deviation as the ensemble spread via variance
-    std = np.sqrt(variance)
-
-    arr_split = np.array_split(np.stack([std, sq_error], axis=1), nbins, 0)
-    
-    return arr_split, shape_to_keep
-
-
-def _binned_spread_skill_agg_no_boot(arr_split, reconstruct_shape, skip_nan=None):
-    
-    if skip_nan is None: skip_nan = util.strtobool(os.environ['pyanen_skip_nan'])
-    
-    stds = []
-    errors = []
-    
-    for arr in tqdm(arr_split,
-                    disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
-                    leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
-                    desc='Spread skill aggregation'):
-        assert len(arr.shape) == 3 and arr.shape[1] == 2
-        
-        if skip_nan:
-            stds.append([np.nanmean(arr[:, 0, i]) for i in range(arr.shape[2])])
-            errors.append([np.nanmean(arr[:, 1, i]) for i in range(arr.shape[2])])
-        else:
-            stds.append([arr[:, 0, i].mean() for i in range(arr.shape[2])])
-            errors.append([arr[:, 1, i].mean() for i in range(arr.shape[2])])
-    
-    stds = np.array(stds)
-    errors = np.array(errors)
-
-    # Errors here are averaged squared errors.
-    # Need to take the root to be RMSE
-    #
-    rmses = np.sqrt(errors)
-    
-    assert rmses.shape[1] == stds.shape[1] == np.prod(reconstruct_shape)
-    
-    stds = stds.reshape(stds.shape[0], *reconstruct_shape)
-    rmses = rmses.reshape(rmses.shape[0], *reconstruct_shape)
-
-    # Transpose dimensions so that the dimensions to keep are at the beginning
-    stds = np.moveaxis(stds, 0, -1)
-    rmses = np.moveaxis(rmses, 0, -1)
-    
-    return stds, rmses
-
-
-def _binned_spread_skill_agg_boot(arr_split, reconstruct_shape,
-                                  n_samples=None, repeats=None, confidence=None, skip_nan=None):
-    
-    if n_samples is None: n_samples = int(os.environ['pyanen_boot_samples'])
-    if repeats is None: repeats = int(os.environ['pyanen_boot_repeats'])
-    if confidence is None: confidence = float(os.environ['pyanen_boot_confidence'])
-    if skip_nan is None: skip_nan = util.strtobool(os.environ['pyanen_skip_nan'])
-    
-    stds_ci = []
-    rmses_ci = []
-    
-    nbins = len(arr_split)
-    
-    for arr in tqdm(arr_split,
-                    disable=util.strtobool(os.environ['pyanen_tqdm_disable']),
-                    leave=util.strtobool(os.environ['pyanen_tqdm_leave']),
-                    desc='Spread skill bootstraping'):
-        assert len(arr.shape) == 3 and arr.shape[1] == 2
-        pop_size = arr.shape[0]
-        
-        for dim_i in range(arr.shape[2]):
-            stds = []
-            errors = []
-            
-            for _ in range(repeats):
-                idx = np.random.randint(pop_size, size=n_samples)
-                
-                if skip_nan:
-                    stds.append(np.nanmean(arr[idx, 0, dim_i]))
-                    errors.append(np.sqrt(np.nanmean(arr[idx, 1, dim_i])))
-                else:
-                    stds.append(arr[idx, 0, dim_i].mean())
-                    errors.append(np.sqrt(arr[idx, 1, dim_i].mean()))
-            
-            std_mean, rmse_mean  = np.mean(stds), np.mean(errors)
-            std_ci = np.quantile(stds, [1-confidence, confidence])
-            rmse_ci = np.quantile(errors, [1-confidence, confidence])
-            
-            stds_ci.append([std_ci[0], std_mean, std_ci[1]])
-            rmses_ci.append([rmse_ci[0], rmse_mean, rmse_ci[1]])
-        
-    stds_ci = np.array(stds_ci)
-    rmses_ci = np.array(rmses_ci)
-    
-    assert len(stds_ci.shape) == len(rmses_ci.shape) == 2, 'stds_ci: {}, rmses_ci: {}'.format(stds_ci.shape, rmses_ci.shape)
-    assert stds_ci.shape[0] == rmses_ci.shape[0] == np.prod(reconstruct_shape) * nbins, \
-        'Got {}, {}, {}'.format(stds_ci.shape[0], rmses_ci.shape[0], np.prod(reconstruct_shape) * nbins)
-    
-    stds_ci = stds_ci.reshape(nbins, *reconstruct_shape, 3)
-    rmses_ci = rmses_ci.reshape(nbins, *reconstruct_shape, 3)
-    
-    # Transpose dimensions so that the dimensions to keep are at the beginning
-    stds_ci = np.moveaxis(stds_ci, 0, -2)
-    rmses_ci = np.moveaxis(rmses_ci, 0, -2)
-    
-    return stds_ci, rmses_ci
-
-
-def binned_spread_skill(
-    variance, sq_error, nbins, sample_axis,
-    boot_samples=None, repeats=None, confidence=None, skip_nan=None):
-    
-    arr_split, shape_to_keep = _binned_spread_skill_create_split(
-        variance=variance, sq_error=sq_error,
-        nbins=nbins, sample_axis=sample_axis)
-    
-    if boot_samples is None:
-        return _binned_spread_skill_agg_no_boot(
-            arr_split=arr_split, reconstruct_shape=shape_to_keep,
-            skip_nan=skip_nan)
-    else:
-        return _binned_spread_skill_agg_boot(
-            arr_split=arr_split, reconstruct_shape=shape_to_keep,
-            n_samples=boot_samples, repeats=repeats, confidence=confidence,
-            skip_nan=skip_nan)
-
-
 #####################
 # Functions for IOU #
 #####################
@@ -704,3 +535,4 @@ def iou_prob(f_prob, o_binary, axis=None, over=None, below=None):
         f_binary = f_prob > over
     
     return _iou(f_binary, o_binary, axis)
+

@@ -173,7 +173,7 @@ def cdf_gaussian(mu, sigma, below, truncated=False):
     
     if isinstance(below, np.ndarray):
         assert below.shape == mu.shape
-    elif isinstance(below, np.float) or isinstance(below, np.int):
+    elif isinstance(below, float) or isinstance(below, int):
         below = np.full(mu.shape, below)
     else:
         raise RuntimeError('below should be either a scalar or an Numpy array. Got {}'.format(type(below)))
@@ -214,7 +214,7 @@ def cdf_gamma(unshifted_mu, sigma, shift, below, truncated=False):
         
     if isinstance(below, np.ndarray):
         assert below.shape == shape.shape
-    elif isinstance(below, np.float) or isinstance(below, np.int):
+    elif isinstance(below, float) or isinstance(below, int):
         below = np.full(shape.shape, below)
     else:
         raise RuntimeError('below should be either a scalar or an Numpy array. Got {}'.format(type(below)))
@@ -262,7 +262,7 @@ def cdf_gamma_hurdle(pop, mu, sigma, below):
         
     if isinstance(below, np.ndarray):
         assert below.shape == shape.shape
-    elif isinstance(below, np.float) or isinstance(below, np.int):
+    elif isinstance(below, float) or isinstance(below, int):
         below = np.full(shape.shape, below)
     else:
         raise RuntimeError('below should be either a scalar or an Numpy array. Got {}'.format(type(below)))

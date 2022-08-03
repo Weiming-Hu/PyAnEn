@@ -1,7 +1,7 @@
 # PyAnEn 0.4.9
 
 - Added Diebold Mariano significance test
-- Spread skill correlation now uses standard deviation as spread and RMSE as skill
+- Use proper spread-skill correlation calculation
 
 # PyAnEn 0.4.8
 

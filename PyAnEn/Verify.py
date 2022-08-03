@@ -21,8 +21,8 @@ from distutils import util
 from .utils_verify import boot_arr
 from .utils_verify import _reliability_agg_boot
 from .utils_verify import _reliability_agg_no_boot
-from .utils_verify import _binned_spread_skill_agg_boot
-from .utils_verify import _binned_spread_skill_agg_no_boot
+from .utils_ss import _binned_spread_skill_agg_boot
+from .utils_ss import _binned_spread_skill_agg_no_boot
 
 
 class Verify:

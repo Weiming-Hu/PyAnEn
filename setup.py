@@ -30,5 +30,6 @@ setuptools.setup(
         'sklearn',
         'pandas',
         'ray',
+        'tqdm',
     ],
 )

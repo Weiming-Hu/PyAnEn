@@ -27,7 +27,7 @@ setuptools.setup(
         'netCDF4',
         'numpy',
         'scipy',
-        'sklearn',
+        'scikit-learn',
         'pandas',
         'ray',
         'tqdm',

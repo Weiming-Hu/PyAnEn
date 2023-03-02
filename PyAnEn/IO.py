@@ -30,12 +30,7 @@ coords_dict = {'num_flts': 'FLTs',
 
 
 def _decode_name_matrix(mat):
-    names = []
-    
-    for row in mat:
-        names.append(''.join([v.decode("utf-8") for v in row]))
-        
-    return names
+    return [''.join(row) for row in mat]
 
 
 def __add_coords__(ds, dim_name='num_stations'):
@@ -76,7 +71,7 @@ def open_dataset(file, group=None, decode=False):
                     warnings.warn('Cannot decode {}. Return immediately.'.format(var))
                     return ds
                 
-                names = _decode_name_matrix(ds[var].data)
+                names = _decode_name_matrix(ds[var].data.astype('str'))
                 dim = [dim for dim in ds[var].dims if dim != 'num_chars'][0]
                 ds[var] = ((dim), names)
 

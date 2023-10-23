@@ -100,7 +100,7 @@ def open_dataset(file, group=None, decode=False):
     return ds
 
 
-def open_mfdataset(paths, group=None, parallel=True, decode=False):
+def open_mfdataset(paths, group=None, parallel=True, decode=False, preprocess=__add_coords__):
     """
     Read multiple NetCDF files as an xarray Dataset.
     
@@ -108,6 +108,7 @@ def open_mfdataset(paths, group=None, parallel=True, decode=False):
     :param group: See xarray.open_mfdataset
     :param parallel: See xarray.open_mfdataset
     :param decode: Whether to decode time related dimensions
+    :param preprocess: Preprocess function. Default to `__add_coords__` based on file names (outputs from MPI AnEn)
     :return xarray Dataset
     """
 
@@ -126,7 +127,7 @@ def open_mfdataset(paths, group=None, parallel=True, decode=False):
     # Open the dataset #
     ####################
     
-    ds = xr.open_mfdataset(paths=paths, preprocess=__add_coords__, data_vars='minimal', coords='minimal',
+    ds = xr.open_mfdataset(paths=paths, preprocess=preprocess, data_vars='minimal', coords='minimal',
                            compat='override', parallel=parallel, group=group, decode_cf=decode)
     
     ############################

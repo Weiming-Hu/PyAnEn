@@ -145,7 +145,7 @@ def open_mfdataset(paths, group=None, parallel=True, decode=False, preprocess=__
     
     # Deal with missing location variables by reading from the root group
     if 'Xs' not in ds:
-        with xr.open_mfdataset(paths=paths, preprocess=__add_coords__, concat_dim='num_stations',
+        with xr.open_mfdataset(paths=paths, preprocess=preprocess, concat_dim='num_stations',
                                data_vars='minimal', coords='minimal', compat='override',
                                parallel=parallel, decode_cf=False) as ds_root:
 

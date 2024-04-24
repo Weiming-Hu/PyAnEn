@@ -236,7 +236,8 @@ def boot_vec(pop, n_samples=None, repeats=None, confidence=None, pbar=None, skip
     boot_samples_mean = np.array(boot_samples_mean)
     
     sample_mean = boot_samples_mean.mean()
-    ci = np.quantile(boot_samples_mean, [1-confidence, confidence])
+    delta = (1-confidence) / 2
+    ci = np.quantile(boot_samples_mean, [delta, 1-delta])
     
     # sample_std = boot_samples_mean.std()
     # ci = st.t.interval(alpha=confidence, df=repeats-1, loc=sample_mean, scale=sample_std)
